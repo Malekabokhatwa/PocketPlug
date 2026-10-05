@@ -2,8 +2,9 @@ using System;
 using MelonLoader;
 using PocketPlug.Features;
 using PocketPlug.Phone;
+using PocketPlug.Util;
 
-[assembly: MelonInfo(typeof(PocketPlug.Core), "PocketPlug", "1.0.0", "Malekabokhatwa",
+[assembly: MelonInfo(typeof(PocketPlug.Core), "PocketPlug", "1.0.1", "Malekabokhatwa",
     "https://github.com/Malekabokhatwa/PocketPlug")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
@@ -36,6 +37,7 @@ public sealed class Core : MelonMod
     public override void OnUpdate()
     {
         float now = UnityEngine.Time.unscaledTime;
+        Perf.CheckFrame();
         Config.ReloadIfChanged(now);
         DevTools.Poll(now);
 
@@ -67,7 +69,9 @@ public sealed class Core : MelonMod
     {
         try
         {
+            Perf.Begin();
             action();
+            Perf.End(action.Method.DeclaringType?.Name);
         }
         catch (Exception e)
         {

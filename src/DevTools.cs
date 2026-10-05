@@ -30,6 +30,7 @@ internal static class DevTools
         _enabled = File.Exists(FlagPath);
         if (_enabled)
             Core.Log.Warning("Dev mode on (PocketPlug.dev found).");
+        Util.Perf.Enabled = _enabled;
     }
 
     public static void Poll(float now)
