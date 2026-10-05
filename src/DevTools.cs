@@ -136,6 +136,42 @@ internal static class DevTools
                 Singleton<Il2CppScheduleOne.UI.NotificationsManager>.Instance.SendNotification("PocketPlug test", arg == "" ? "Notifications work" : arg,
                     Il2CppScheduleOne.Registry.GetItem("mixingstation")?.Icon, 5f, true);
                 break;
+            case "fakedeal":
+                var cm = Singleton<Il2CppScheduleOne.UI.Compass.CompassManager>.Instance;
+                if (arg == "off")
+                {
+                    foreach (var (el, _) in Features.CompassDeals.DevMarkers)
+                        cm.RemoveElement(el, true);
+                    Features.CompassDeals.DevMarkers.Clear();
+                    break;
+                }
+                Il2CppScheduleOne.NPCs.NPC who = null;
+                foreach (var n in UnityEngine.Object.FindObjectsOfType<Il2CppScheduleOne.NPCs.NPC>())
+                {
+                    if (Util.Npcs.Mugshot(n) != null && n.GetComponent<Il2CppScheduleOne.Economy.Customer>() != null)
+                    {
+                        who = n;
+                        break;
+                    }
+                }
+                RectTransform icon = null;
+                foreach (var q in UnityEngine.Object.FindObjectsOfType<Il2CppScheduleOne.Quests.Quest>())
+                {
+                    if (q.IconPrefab != null)
+                    {
+                        icon = q.IconPrefab;
+                        break;
+                    }
+                }
+                if (who == null || icon == null)
+                {
+                    Core.Log.Warning($"fakedeal: npc={who != null} icon={icon != null}");
+                    break;
+                }
+                var element = cm.AddElement(who.transform, icon, true);
+                Features.CompassDeals.DevMarkers.Add((element, who));
+                Core.Log.Msg($"fakedeal: marker on {who.FullName}");
+                break;
             case "money":
                 Core.Log.Msg($"money: cash={Features.Bank.Cash} bank={Features.Bank.Online} week={Il2CppScheduleOne.Money.ATM.WeeklyDepositSum}");
                 break;
@@ -155,7 +191,9 @@ internal static class DevTools
     /// <summary>Writes the transform tree under a GameObject (found by name) with components and rect sizes.</summary>
     private static void Dump(string name)
     {
-        var root = GameObject.Find(name);
+        var root = name == "compass"
+            ? Singleton<Il2CppScheduleOne.UI.Compass.CompassManager>.Instance.ElementUIContainer.gameObject
+            : GameObject.Find(name);
         if (root == null)
         {
             Core.Log.Warning($"dump: '{name}' not found");

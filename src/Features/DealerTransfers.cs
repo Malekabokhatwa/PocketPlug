@@ -69,7 +69,7 @@ internal static class DealerTransfers
             Bank.Receive(amount, dealer.FullName);
             reply = $"Sent {MoneyManager.FormatAmount(amount)} to your account.";
             Singleton<NotificationsManager>.Instance.SendNotification(
-                $"{dealer.FirstName} sent you {MoneyManager.FormatAmount(amount)}", "Bank transfer", dealer.MugshotSprite, 5f, true);
+                $"{dealer.FirstName} sent you {MoneyManager.FormatAmount(amount)}", "Bank transfer", Util.Npcs.Mugshot(dealer), 5f, true);
         }
         convo.SendMessage(new Message(reply, Message.ESenderType.Other, true, -1), true, true);
     }

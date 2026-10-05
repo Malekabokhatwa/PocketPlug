@@ -113,9 +113,13 @@ internal static class BankHistory
 
     public static IReadOnlyList<Entry> All => Entries;
 
+    /// <summary>Goes up every time the list changes, so views know when to redraw.</summary>
+    public static int Version { get; private set; }
+
     public static void OnSceneChanged()
     {
         Entries.Clear();
+        Version++;
         _file = null;
         _seenLedgerCount = 0;
     }
@@ -162,6 +166,7 @@ internal static class BankHistory
 
     private static void Add(Entry e, bool persist)
     {
+        Version++;
         Entries.Insert(0, e);
         if (Entries.Count > MaxShown)
             Entries.RemoveAt(Entries.Count - 1);

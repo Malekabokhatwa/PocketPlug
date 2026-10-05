@@ -42,7 +42,7 @@ internal static class DealReminders
             var npc = c.Customer != null ? c.Customer.GetComponent<NPC>() : null;
             string who = npc != null ? npc.FullName : "A customer";
             Singleton<NotificationsManager>.Instance.SendNotification(
-                "<color=#FFB43C>Deal ending soon</color>", $"{who}: {mins} min left", npc?.MugshotSprite, 6f, true);
+                "<color=#FFB43C>Deal ending soon</color>", $"{who}: {mins} min left", Util.Npcs.Mugshot(npc), 6f, true);
         }
     }
 }

@@ -21,7 +21,7 @@ internal sealed class BankApp : CustomApp
     private Text _online, _cash, _amount, _status, _weekly;
     private RectTransform _history;
     private readonly List<GameObject> _historyRows = new();
-    private int _shownHistoryCount = -1;
+    private int _shownHistoryVersion = -1;
     private float _selected;
     private float _nextRefresh;
 
@@ -69,7 +69,7 @@ internal sealed class BankApp : CustomApp
     protected internal override void OnOpened()
     {
         _status.text = "";
-        _shownHistoryCount = -1;
+        _shownHistoryVersion = -1;
         Refresh();
     }
 
@@ -91,9 +91,9 @@ internal sealed class BankApp : CustomApp
             : $"Deposited this week: {MoneyManager.FormatAmount(Bank.DepositedThisWeek)} / {MoneyManager.FormatAmount(Bank.WeeklyLimit)}";
 
         var entries = BankHistory.All;
-        if (entries.Count == _shownHistoryCount)
+        if (BankHistory.Version == _shownHistoryVersion)
             return;
-        _shownHistoryCount = entries.Count;
+        _shownHistoryVersion = BankHistory.Version;
         foreach (var row in _historyRows)
             UnityEngine.Object.Destroy(row);
         _historyRows.Clear();

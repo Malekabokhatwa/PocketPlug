@@ -29,17 +29,31 @@ internal static class CompassDeals
         public GameObject Root;
         public Image Photo;
         public TextMeshProUGUI Name;
-        public GameObject GameIcon;
+        public readonly List<GameObject> Hidden = new();
         public Vector2 LabelPos;
         public NPC Customer;
     }
 
     private static readonly Dictionary<System.IntPtr, Decoration> Decorations = new();
 
+    /// <summary>Dev-only test markers (element, npc), decorated like real deals.</summary>
+    internal static readonly List<(CompassManager.Element element, NPC npc)> DevMarkers = new();
+
+    private static readonly Vector4 ClipPadding = new(0f, -60f, 0f, 0f);
+    private static RectMask2D _clip;
+
     public static void LateUpdate()
     {
         if (!Config.CompassDeals.On || !Singleton<CompassManager>.InstanceExists || !PlayerSingleton<PlayerCamera>.InstanceExists)
             return;
+
+        // Compass markers sit in a 30px-tall container that clips with RectMask2D; extend it down for the name and distance.
+        if (_clip == null)
+        {
+            _clip = Singleton<CompassManager>.Instance.ElementUIContainer.GetComponent<RectMask2D>();
+            if (_clip != null)
+                _clip.padding = ClipPadding;
+        }
 
         var seen = new HashSet<System.IntPtr>();
         var contracts = Contract.Contracts;
@@ -60,6 +74,12 @@ internal static class CompassDeals
                 var deco = Decorate(element, npc);
                 UpdateDistance(deco);
             }
+        }
+
+        foreach (var (element, npc) in DevMarkers)
+        {
+            seen.Add(element.Rect.Pointer);
+            UpdateDistance(Decorate(element, npc));
         }
 
         // Elements that went away with their deal.
@@ -84,6 +104,9 @@ internal static class CompassDeals
         foreach (var deco in Decorations.Values)
             Undo(deco);
         Decorations.Clear();
+        if (_clip != null)
+            _clip.padding = Vector4.zero;
+        _clip = null;
     }
 
     private static Decoration Decorate(CompassManager.Element element, NPC npc)
@@ -99,18 +122,18 @@ internal static class CompassDeals
         var rect = element.Rect;
         var label = element.DistanceLabel;
 
-        // The deal icon is the child the game instantiated next to the distance label.
+        // Hide the deal icon (and anything else the game put on the element) except the distance label.
         for (int i = 0; i < rect.childCount; i++)
         {
-            var child = rect.GetChild(i);
-            if (label == null || child.Pointer != label.transform.Pointer)
+            var child = rect.GetChild(i).gameObject;
+            if (label != null && child.Pointer == label.gameObject.Pointer)
+                continue;
+            if (child.activeSelf)
             {
-                deco.GameIcon = child.gameObject;
-                break;
+                child.SetActive(false);
+                deco.Hidden.Add(child);
             }
         }
-        if (deco.GameIcon != null)
-            deco.GameIcon.SetActive(false);
 
         var root = Ui.Rect("PocketPlug_Deal", rect);
         root.anchorMin = root.anchorMax = root.pivot = new Vector2(0.5f, 0.5f);
@@ -153,7 +176,7 @@ internal static class CompassDeals
     private static void SetCustomer(Decoration deco, NPC npc)
     {
         deco.Customer = npc;
-        deco.Photo.sprite = npc != null ? npc.MugshotSprite : null;
+        deco.Photo.sprite = Npcs.Mugshot(npc);
         deco.Photo.color = deco.Photo.sprite != null ? Color.white : new Color(0.3f, 0.3f, 0.3f, 1f);
         if (deco.Name != null)
             deco.Name.text = npc != null ? npc.FullName : "Deal";
@@ -173,8 +196,11 @@ internal static class CompassDeals
     {
         if (deco.Root != null)
             Object.Destroy(deco.Root);
-        if (deco.GameIcon != null)
-            deco.GameIcon.SetActive(true);
+        foreach (var go in deco.Hidden)
+        {
+            if (go != null)
+                go.SetActive(true);
+        }
         if (deco.Element?.DistanceLabel != null)
             deco.Element.DistanceLabel.rectTransform.anchoredPosition = deco.LabelPos;
     }
