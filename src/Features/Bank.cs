@@ -124,6 +124,16 @@ internal static class BankHistory
         _seenLedgerCount = 0;
     }
 
+    /// <summary>Opens the save's history file during loading, so the first read never costs a frame in play.</summary>
+    public static void Warmup()
+    {
+        if (_file != null || !Singleton<LoadManager>.InstanceExists)
+            return;
+        var path = Singleton<LoadManager>.Instance.LoadedGameFolderPath;
+        if (!string.IsNullOrEmpty(path))
+            Open(path);
+    }
+
     public static void Update()
     {
         if (!NetworkSingleton<MoneyManager>.InstanceExists || !Singleton<LoadManager>.InstanceExists)

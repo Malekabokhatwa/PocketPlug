@@ -10,21 +10,20 @@ internal static class Perf
 {
     public static bool Enabled;
     private const float HitchSeconds = 0.15f;
-    private static readonly Stopwatch Watch = new();
+    private static readonly System.Collections.Generic.Stack<long> Starts = new();
 
     public static void Begin()
     {
         if (Enabled)
-            Watch.Restart();
+            Starts.Push(Stopwatch.GetTimestamp());
     }
 
     public static void End(string feature)
     {
-        if (!Enabled)
+        if (!Enabled || Starts.Count == 0)
             return;
-        Watch.Stop();
-        double ms = Watch.Elapsed.TotalMilliseconds;
-        if (ms > 2.0)
+        double ms = (Stopwatch.GetTimestamp() - Starts.Pop()) * 1000.0 / Stopwatch.Frequency;
+        if (ms > 1.0)
             Core.Log.Msg($"perf: {feature} took {ms:F1} ms");
     }
 

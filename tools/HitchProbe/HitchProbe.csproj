@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>HitchProbe</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <DebugType>none</DebugType>
+    <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.local/share/Steam/steamapps/common/Schedule I</GameDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(GameDir)/MelonLoader/net6/MelonLoader.dll" Private="false" />
+    <Reference Include="$(GameDir)/MelonLoader/net6/Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(GameDir)/MelonLoader/Il2CppAssemblies/*.dll" Private="false" />
+  </ItemGroup>
+</Project>

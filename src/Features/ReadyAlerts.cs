@@ -19,6 +19,8 @@ namespace PocketPlug.Features;
 internal static class ReadyAlerts
 {
     private const int ItemsPerFrame = 12;
+    private const int NewItemsPerFrame = 3;   // working out an item's type costs more than checking it
+    private static int _classifiedThisFrame;
     private const float PassInterval = 2f;
 
     private sealed class Kind
@@ -52,6 +54,36 @@ internal static class ReadyAlerts
     private static float _nextPass;
     private static bool _primed;
 
+    /// <summary>
+    /// The first TryCast&lt;T&gt; per type does one-time IL2CPP interop setup (~10 ms for these seven). Doing it
+    /// while the loading screen is up means it never costs a frame during play.
+    /// </summary>
+    public static void Warmup()
+    {
+        var probe = new Il2CppSystem.Object();
+        probe.TryCast<BuildableItem>();
+        probe.TryCast<Pot>();
+        probe.TryCast<MushroomBed>();
+        probe.TryCast<MixingStation>();
+        probe.TryCast<ChemistryStation>();
+        probe.TryCast<LabOven>();
+        probe.TryCast<Cauldron>();
+        probe.TryCast<DryingRack>();
+
+        // Walk the property lists once and work out every item's type now (first successful casts are the
+        // costly part), then start clean. Items spawned later are classified a few per frame as usual.
+        StartPassInner();
+        foreach (var item in Pass)
+        {
+            if (item != null && !Cache.ContainsKey(item.Pointer))
+                Cache[item.Pointer] = Classify(item);
+        }
+        Core.Log.Msg($"Ready alerts: {Cache.Count} items prepared while loading.");
+        Pass.Clear();
+        _cursor = 0;
+        _nextPass = Time.unscaledTime + 5f;
+    }
+
     public static void Reset()
     {
         Cache.Clear();
@@ -76,12 +108,20 @@ internal static class ReadyAlerts
             return;
         }
 
+        _classifiedThisFrame = 0;
         int end = Math.Min(_cursor + ItemsPerFrame, Pass.Count);
-        for (; _cursor < end; _cursor++)
+        for (; _cursor < end && _classifiedThisFrame < NewItemsPerFrame; _cursor++)
             Check(Pass[_cursor]);
     }
 
     private static void StartPass()
+    {
+        Util.Perf.Begin();
+        StartPassInner();
+        Util.Perf.End($"ReadyAlerts.StartPass ({Pass.Count} items)");
+    }
+
+    private static void StartPassInner()
     {
         _nextPass = Time.unscaledTime + PassInterval;
         Pass.Clear();
@@ -117,7 +157,10 @@ internal static class ReadyAlerts
             return;
         if (!Cache.TryGetValue(item.Pointer, out var t))
         {
+            _classifiedThisFrame++;
+            Util.Perf.Begin();
             t = Classify(item);
+            Util.Perf.End($"ReadyAlerts.Classify {item.GetIl2CppType().Name}");
             Cache[item.Pointer] = t;
         }
         if (t == null)
