@@ -1,0 +1,8 @@
+bin/
+obj/
+*.user
+.vs/
+.idea/
+MODLOG.md
+assets/icons/svg/
+.shots/
