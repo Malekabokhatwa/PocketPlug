@@ -173,6 +173,24 @@ internal static class DevTools
                 Features.CompassDeals.DevMarkers.Add((element, who));
                 Core.Log.Msg($"fakedeal: marker on {who.FullName}");
                 break;
+            case "stations":
+                foreach (var prop in Il2CppScheduleOne.Property.Property.OwnedProperties)
+                {
+                    foreach (var it in prop.BuildableItems)
+                    {
+                        var mix = it?.TryCast<Il2CppScheduleOne.ObjectScripts.MixingStation>();
+                        if (mix != null)
+                        {
+                            bool mk2 = mix.TryCast<Il2CppScheduleOne.ObjectScripts.MixingStationMk2>() != null;
+                            var field = mix.stationConfiguration?.StartThrehold;
+                            Core.Log.Msg($"stations: {prop.PropertyName} | {(mk2 ? "Mk2" : "Mk1")} mixer | max={mix.MaxMixQuantity} timePerItem={mix.MixTimePerItem} sliderMax={(field != null ? field.MaxValue : -1)} output={mix.OutputSlot?.Quantity}");
+                        }
+                        var rack = it?.TryCast<Il2CppScheduleOne.ObjectScripts.DryingRack>();
+                        if (rack != null)
+                            Core.Log.Msg($"stations: {prop.PropertyName} | drying rack | capacity={rack.ItemCapacity} sliderMax={(rack.stationConfiguration?.StartThreshold != null ? rack.stationConfiguration.StartThreshold.MaxValue : -1)}");
+                    }
+                }
+                break;
             case "money":
                 Core.Log.Msg($"money: cash={Features.Bank.Cash} bank={Features.Bank.Online} week={Il2CppScheduleOne.Money.ATM.WeeklyDepositSum}");
                 break;

@@ -129,9 +129,8 @@ internal static class BankHistory
     {
         if (_file != null || !Singleton<LoadManager>.InstanceExists)
             return;
-        var path = Singleton<LoadManager>.Instance.LoadedGameFolderPath;
-        if (!string.IsNullOrEmpty(path))
-            Open(path);
+        if (!string.IsNullOrEmpty(Singleton<LoadManager>.Instance.LoadedGameFolderPath))
+            Open();
     }
 
     public static void Update()
@@ -143,7 +142,7 @@ internal static class BankHistory
             return;
 
         if (_file == null)
-            Open(load.LoadedGameFolderPath);
+            Open();
 
         var ledger = NetworkSingleton<MoneyManager>.Instance.ledger;
         if (ledger.Count < _seenLedgerCount)
@@ -156,13 +155,11 @@ internal static class BankHistory
         _seenLedgerCount = ledger.Count;
     }
 
-    private static void Open(string saveFolder)
+    private static void Open()
     {
-        var parent = Path.GetFileName(Path.GetDirectoryName(saveFolder.TrimEnd('/', '\\')));
-        var name = $"{parent}_{Path.GetFileName(saveFolder.TrimEnd('/', '\\'))}";
-        var dir = Path.Combine(MelonEnvironment.UserDataDirectory, "PocketPlug", "history");
-        Directory.CreateDirectory(dir);
-        _file = Path.Combine(dir, name + ".tsv");
+        _file = Util.SaveKey.File("history", ".tsv");
+        if (_file == null)
+            return;
         if (!File.Exists(_file))
             return;
 

@@ -14,6 +14,7 @@ internal sealed class SettingsApp : CustomApp
 
     private readonly List<(Toggle toggle, Image track, Text state)> _toggles = new();
     private readonly List<(StackSetting setting, Text value)> _stacks = new();
+    private Text _stationNote;
 
     protected internal override void Build(RectTransform root)
     {
@@ -30,6 +31,12 @@ internal sealed class SettingsApp : CustomApp
         Section(list, "STACK LIMITS");
         foreach (var setting in Config.Stacks)
             StackRow(list, setting);
+
+        Section(list, "STATIONS");
+        foreach (var setting in Config.Stations)
+            StackRow(list, setting);
+        _stationNote = Ui.Text("Note", Ui.Row("StationNoteRow", list, 60).transform, "", 18, Ui.TextDim);
+        Ui.Stretch(_stationNote.rectTransform, 4, 0, 4, 0);
 
         var note = Ui.Text("Note", Ui.Row("NoteRow", list, 70).transform,
             "0 keeps the game's limit. Guns, melee weapons, ammo and items that don't stack are never changed.",
@@ -122,6 +129,15 @@ internal sealed class SettingsApp : CustomApp
             state.text = toggle.On ? "ON" : "OFF";
         }
         foreach (var (setting, value) in _stacks)
-            value.text = setting.Entry.Value == 0 ? "Off" : setting.Entry.Value.ToString();
+            value.text = setting.Entry.Value == 0 ? "Game" : setting.Entry.Value.ToString();
+
+        // Batches are added to the output slot in one go, so they're capped at the product stack limit.
+        int cap = Features.StationLimits.OutputCap;
+        bool capped = false;
+        foreach (var s in Config.Stations)
+            capped |= s.Entry.Value > cap;
+        _stationNote.text = capped
+            ? $"<color=#FFB43C>Capped at {cap}</color>: a finished batch must fit one product stack. Raise the Products stack limit to go higher."
+            : "Mix time scales with the batch size. 0 keeps the game's value.";
     }
 }

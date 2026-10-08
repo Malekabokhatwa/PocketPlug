@@ -12,7 +12,7 @@ namespace PocketPlug.Features;
 internal static class DealReminders
 {
     private const int WarnAtMinutes = 60;
-    private static readonly HashSet<IntPtr> Warned = new();
+    private static readonly HashSet<string> Warned = new();
     private static float _next;
 
     public static void Reset()
@@ -31,14 +31,14 @@ internal static class DealReminders
         for (int i = 0; i < contracts.Count; i++)
         {
             var c = contracts[i];
-            if (c == null || c.State != EQuestState.Active || !c.Expires || c.Dealer != null || Warned.Contains(c.Pointer))
+            if (c == null || c.State != EQuestState.Active || !c.Expires || c.Dealer != null || Warned.Contains(c.GUID.ToString()))
                 continue;
 
             int mins = c.GetMinsUntilExpiry();
             if (mins <= 0 || mins > WarnAtMinutes)
                 continue;
 
-            Warned.Add(c.Pointer);
+            Warned.Add(c.GUID.ToString());
             var npc = c.Customer != null ? c.Customer.GetComponent<NPC>() : null;
             string who = npc != null ? npc.FullName : "A customer";
             Singleton<NotificationsManager>.Instance.SendNotification(

@@ -33,11 +33,18 @@ internal static class ReadyAlerts
     private sealed class Tracked
     {
         public Kind Kind;
+        public UnityEngine.Object Owner;   // for the destroyed check
         public Func<int> Read;
         public bool Rising;
         public int Last;
         public bool Seen;
+        /// <summary>Optional output slot quantity: a rise also counts as done (stations that empty their operation the moment it finishes).</summary>
+        public Func<int> Output;
+        public int LastOutput;
+        public int Pass;
     }
+
+    private static int _passId;
 
     private static readonly Kind Plants = new() { Singular = "Plant ready to harvest", Plural = "plants ready to harvest", ItemId = "plasticpot" };
     private static readonly Kind Shrooms = new() { Singular = "Shrooms ready to harvest", Plural = "mushroom beds ready", ItemId = "mushroombed" };
@@ -142,6 +149,17 @@ internal static class ReadyAlerts
 
     private static void FinishPass()
     {
+        // Forget items that weren't in this pass (sold, picked up, destroyed).
+        var stale = new List<IntPtr>();
+        foreach (var kv in Cache)
+        {
+            if (kv.Value == null || kv.Value.Pass != _passId)
+                stale.Add(kv.Key);
+        }
+        foreach (var key in stale)
+            Cache.Remove(key);
+        _passId++;
+
         if (_primed)
             Send();
         foreach (var kind in Kinds)
@@ -155,26 +173,33 @@ internal static class ReadyAlerts
     {
         if (item == null)
             return;
-        if (!Cache.TryGetValue(item.Pointer, out var t))
+        if (!Cache.TryGetValue(item.Pointer, out var t) || (t != null && t.Owner == null))
         {
+            // New item, or the cached one was destroyed and its native pointer reused.
             _classifiedThisFrame++;
-            Util.Perf.Begin();
             t = Classify(item);
-            Util.Perf.End($"ReadyAlerts.Classify {item.GetIl2CppType().Name}");
             Cache[item.Pointer] = t;
         }
         if (t == null)
             return;
+        t.Pass = _passId;
 
         int value = t.Read();
+        int output = t.Output != null ? t.Output() : 0;
         bool had = t.Seen;
         int before = t.Last;
+        int outputBefore = t.LastOutput;
         t.Last = value;
+        t.LastOutput = output;
         t.Seen = true;
         if (!had || !_primed)
             return;
 
         bool done = t.Rising ? before == 0 && value == 1 : value > before;
+        // Known recipes empty the operation the moment they finish, so only the output rise shows it. A new-recipe
+        // mix already alerted when its flag rose; its output appears later when the player reveals it.
+        if (t.Output != null && output > outputBefore && before == 0)
+            done = true;
         if (done)
             t.Kind.Places.Add(item.ParentProperty != null ? item.ParentProperty.PropertyName : "");
     }
@@ -184,26 +209,36 @@ internal static class ReadyAlerts
     {
         var pot = item.TryCast<Pot>();
         if (pot != null)
-            return new Tracked { Kind = Plants, Rising = true, Read = () => pot.Plant != null && pot.Plant.IsFullyGrown ? 1 : 0 };
+            return new Tracked { Owner = pot, Kind = Plants, Rising = true, Read = () => pot.Plant != null && pot.Plant.IsFullyGrown ? 1 : 0 };
         var bed = item.TryCast<MushroomBed>();
         if (bed != null)
-            return new Tracked { Kind = Shrooms, Rising = true, Read = () => bed.CurrentColony != null && bed.CurrentColony.IsFullyGrown ? 1 : 0 };
+            return new Tracked { Owner = bed, Kind = Shrooms, Rising = true, Read = () => bed.CurrentColony != null && bed.CurrentColony.IsFullyGrown ? 1 : 0 };
         var mixer = item.TryCast<MixingStation>();
         if (mixer != null)
-            return new Tracked { Kind = Mixers, Rising = true, Read = () => mixer.CurrentMixOperation != null && mixer.IsMixingDone ? 1 : 0 };
+            return new Tracked
+            {
+                Kind = Mixers, Owner = mixer, Rising = true,
+                Read = () => mixer.CurrentMixOperation != null && mixer.IsMixingDone ? 1 : 0,
+                Output = () => mixer.OutputSlot != null ? mixer.OutputSlot.Quantity : 0
+            };
         var chem = item.TryCast<ChemistryStation>();
         if (chem != null)
-            return new Tracked { Kind = Chem, Rising = true, Read = () => chem.CurrentCookOperation != null && chem.CurrentCookOperation.IsComplete() ? 1 : 0 };
+            return new Tracked
+            {
+                Kind = Chem, Owner = chem, Rising = true,
+                Read = () => chem.CurrentCookOperation != null && chem.CurrentCookOperation.IsComplete() ? 1 : 0,
+                Output = () => chem.OutputSlot != null ? chem.OutputSlot.Quantity : 0
+            };
         var oven = item.TryCast<LabOven>();
         if (oven != null)
-            return new Tracked { Kind = Ovens, Rising = true, Read = () => oven.IsReadyForHarvest() ? 1 : 0 };
+            return new Tracked { Owner = oven, Kind = Ovens, Rising = true, Read = () => oven.IsReadyForHarvest() ? 1 : 0 };
         // The cauldron and drying rack move finished items straight to their output slot.
         var cauldron = item.TryCast<Cauldron>();
         if (cauldron != null)
-            return new Tracked { Kind = Cauldrons, Rising = false, Read = () => cauldron.OutputSlot != null ? cauldron.OutputSlot.Quantity : 0 };
+            return new Tracked { Owner = cauldron, Kind = Cauldrons, Rising = false, Read = () => cauldron.OutputSlot != null ? cauldron.OutputSlot.Quantity : 0 };
         var rack = item.TryCast<DryingRack>();
         if (rack != null)
-            return new Tracked { Kind = Racks, Rising = false, Read = () => rack.OutputSlot != null ? rack.OutputSlot.Quantity : 0 };
+            return new Tracked { Owner = rack, Kind = Racks, Rising = false, Read = () => rack.OutputSlot != null ? rack.OutputSlot.Quantity : 0 };
         return null;
     }
 

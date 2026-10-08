@@ -27,6 +27,7 @@ public sealed class Core : MelonMod
     {
         Log.Msg($"Scene ready: {sceneName}");
         StackLimits.ApplyAll();
+        StationLimits.Reset();
         Apps.OnSceneChanged();
         BankHistory.OnSceneChanged();
         ReadyAlerts.Reset();
@@ -67,6 +68,7 @@ public sealed class Core : MelonMod
     private static void OnConfigChanged()
     {
         StackLimits.ApplyAll();
+        Safe(StationLimits.ApplyAll);
         CompassDeals.Refresh();
         Apps.Refresh();
     }

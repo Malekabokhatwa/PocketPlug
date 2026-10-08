@@ -24,21 +24,23 @@ internal sealed class Toggle
     public bool On => Entry.Value;
 }
 
-/// <summary>A stack limit for one item type, editable from the Settings app.</summary>
+/// <summary>A number editable from the Settings app: a stack limit for an item type, or a station limit.</summary>
 internal sealed class StackSetting
 {
     public readonly ItemGroup Group;
     public readonly string Key;
     public readonly string Title;
     public readonly string Description;
+    public readonly int Default;
     public MelonPreferences_Entry<int> Entry;
 
-    public StackSetting(ItemGroup group, string key, string title, string description)
+    public StackSetting(ItemGroup group, string key, string title, string description, int @default = 250)
     {
         Group = group;
         Key = key;
         Title = title;
         Description = description;
+        Default = @default;
     }
 }
 
@@ -68,9 +70,31 @@ internal static class Config
         "Notifies you when a deal has about an hour left.");
     public static readonly Toggle StackLimits = new("StackLimits", "Bigger stacks",
         "Raises stack limits per item type (set below).");
+    public static readonly Toggle StationLimits = new("StationLimits", "Station limits",
+        "Bigger mixing station batches and drying racks (set below).");
+    public static readonly Toggle EmployeeAlerts = new("EmployeeAlerts", "Employee alerts",
+        "Notifies you when an employee is out of supplies or stuck.");
+    public static readonly Toggle Payroll = new("Payroll", "Payroll app",
+        "Pay employees from your bank, per property, with optional auto-pay.");
+    public static readonly Toggle DealerSweep = new("DealerSweep", "Dealer auto-sweep",
+        "Every morning, your dealers' cash goes to your bank.");
+    public static readonly Toggle DailyReport = new("DailyReport", "Daily report",
+        "Every morning, PocketPlug AAB texts you yesterday's numbers.");
 
     public static readonly Toggle[] Toggles =
-        { CompassDeals, SkateStamina, BankApp, NoDepositLimit, DealerTransfers, ReadyAlerts, DealExpiry, StackLimits };
+    {
+        CompassDeals, SkateStamina, BankApp, NoDepositLimit, DealerTransfers, ReadyAlerts, DealExpiry, StackLimits,
+        StationLimits, EmployeeAlerts, Payroll, DealerSweep, DailyReport
+    };
+
+    public static readonly StackSetting Mk1MixLimit =
+        new(ItemGroup.None, "Mk1MixLimit", "Mixing station", "Items per mix (game: 10)", 125);
+    public static readonly StackSetting Mk2MixLimit =
+        new(ItemGroup.None, "Mk2MixLimit", "Mixing station Mk2", "Items per mix (game: 20)", 250);
+    public static readonly StackSetting DryingRackCapacity =
+        new(ItemGroup.None, "DryingRackCapacity", "Drying rack", "Items at once (game: 20)", 250);
+
+    public static readonly StackSetting[] Stations = { Mk1MixLimit, Mk2MixLimit, DryingRackCapacity };
 
     public static readonly StackSetting[] Stacks =
     {
@@ -101,7 +125,10 @@ internal static class Config
             t.Entry = _category.CreateEntry(t.Key, true, t.Title, t.Description);
 
         foreach (var s in Stacks)
-            s.Entry = _category.CreateEntry(s.Key, 250, s.Title, $"Stack limit for {s.Description.ToLowerInvariant()}. 0 = game default.");
+            s.Entry = _category.CreateEntry(s.Key, s.Default, s.Title, $"Stack limit for {s.Description.ToLowerInvariant()}. 0 = game default.");
+
+        foreach (var s in Stations)
+            s.Entry = _category.CreateEntry(s.Key, s.Default, s.Title, $"{s.Title}: {s.Description}. 0 = game default.");
 
         _category.SetFilePath(FilePath, autoload: true, printmsg: false);
         Save();

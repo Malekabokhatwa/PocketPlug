@@ -30,11 +30,13 @@ internal static class CompassDeals
         public Image Photo;
         public TextMeshProUGUI Name;
         public readonly List<GameObject> Hidden = new();
-        public Vector2 LabelPos;
         public NPC Customer;
+        public TextMeshProUGUI Distance;   // our copy of the game's distance label, under the name
+        public int LastShownMeters = -1;
     }
 
     private static readonly Dictionary<System.IntPtr, Decoration> Decorations = new();
+    private static readonly HashSet<System.IntPtr> Seen = new();
 
     /// <summary>Dev-only test markers (element, npc), decorated like real deals.</summary>
     internal static readonly List<(CompassManager.Element element, NPC npc)> DevMarkers = new();
@@ -55,7 +57,8 @@ internal static class CompassDeals
                 _clip.padding = ClipPadding;
         }
 
-        var seen = new HashSet<System.IntPtr>();
+        var seen = Seen;
+        seen.Clear();
         var contracts = Contract.Contracts;
         for (int i = 0; i < contracts.Count; i++)
         {
@@ -164,8 +167,19 @@ internal static class CompassDeals
             deco.Name.alignment = TextAlignmentOptions.Center;
             deco.Name.enableWordWrapping = false;
 
-            deco.LabelPos = label.rectTransform.anchoredPosition;
-            label.rectTransform.anchoredPosition = new Vector2(deco.LabelPos.x, DistanceY);
+            // A copy of the game's distance label (same font, style and units) sits under the name. The game's own
+            // label is hidden: it blanks itself beyond 50 m every frame, so updating it would mean a new string
+            // every frame. The copy only changes when the shown number does.
+            deco.Distance = Object.Instantiate(label.gameObject, root).GetComponent<TextMeshProUGUI>();
+            deco.Distance.gameObject.name = "Distance";
+            var distRect = deco.Distance.rectTransform;
+            distRect.anchorMin = distRect.anchorMax = new Vector2(0.5f, 0.5f);
+            distRect.pivot = new Vector2(0.5f, 0.5f);
+            distRect.sizeDelta = new Vector2(220, 20);
+            distRect.anchoredPosition = new Vector2(0, DistanceY);
+            deco.Distance.alignment = TextAlignmentOptions.Center;
+            deco.Distance.enableWordWrapping = false;
+            label.gameObject.SetActive(false);
         }
 
         SetCustomer(deco, npc);
@@ -185,11 +199,16 @@ internal static class CompassDeals
     private static void UpdateDistance(Decoration deco)
     {
         var element = deco.Element;
-        if (element.DistanceLabel == null || element.TargetTransform == null)
+        if (deco.Distance == null || element.TargetTransform == null)
             return;
         var cam = PlayerSingleton<PlayerCamera>.Instance.transform;
         float meters = Vector3.Distance(cam.position, element.TargetTransform.position);
-        element.DistanceLabel.text = UnitsUtility.FormatShortDistance(meters, UnitsUtility.ERoundingType.Up, 0);
+        // Only rewrite when the shown number changes: a new string every frame is pure GC churn.
+        int rounded = Mathf.CeilToInt(meters);
+        if (rounded == deco.LastShownMeters)
+            return;
+        deco.LastShownMeters = rounded;
+        deco.Distance.text = UnitsUtility.FormatShortDistance(meters, UnitsUtility.ERoundingType.Up, 0);
     }
 
     private static void Undo(Decoration deco)
@@ -202,6 +221,6 @@ internal static class CompassDeals
                 go.SetActive(true);
         }
         if (deco.Element?.DistanceLabel != null)
-            deco.Element.DistanceLabel.rectTransform.anchoredPosition = deco.LabelPos;
+            deco.Element.DistanceLabel.gameObject.SetActive(true);
     }
 }
