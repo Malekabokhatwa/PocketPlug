@@ -4,7 +4,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>PocketPlug</AssemblyName>
     <RootNamespace>PocketPlug</RootNamespace>
-    <Version>1.0.2</Version>
+    <Version>2.0.0</Version>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>

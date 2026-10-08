@@ -10,11 +10,17 @@ A quality-of-life [MelonLoader](https://github.com/LavaGang/MelonLoader) mod for
 - **Endless skating.** Infinite stamina while riding a skateboard.
 - **Ready alerts.** Phone notifications when plants or shrooms are ready to harvest, and when mixing stations, drying racks, chemistry stations, lab ovens and cauldrons finish.
 - **Deal reminders.** A notification when one of your deals has about an in-game hour left.
+- **Bigger mixing batches and drying racks.** The Mk2 mixing station takes up to 250 items per mix, the Mk1 up to 125, and drying racks hold 250, all adjustable. Mix time scales with the batch: if 20 items take an hour, 40 take two.
+  - A batch can't be bigger than one product stack, so it never overflows the output slot.
+- **Payroll app.** Pay employees from your bank instead of putting cash in their lockers. Pick a property, set how much each employee gets, then tap Pay or Pay all. Optional per-property **Auto-pay** tops each locker up every morning.
+- **Employee alerts.** A notification when an employee can't work because they're out of seeds, soil, shroom spawn or product and packaging, or because their output has nowhere to go.
+- **Dealer auto-sweep.** Every morning, the cash your dealers hold goes to your bank.
+- **Daily report.** Every morning, **PocketPlug AAB** texts you the day's numbers: bank in and out, your deals, and for each dealer how much they made and which product they have left.
 - **Bigger stacks.** The stack limits from [IncreasedStackLimit-Latest](https://github.com/Malekabokhatwa/IncreasedStackLimit-Latest), built in. Every stackable item goes to 250 by default, with a limit for each item type that you can change in the Settings app.
   - Guns, melee weapons, ammo and items that don't stack are never changed.
 
 ## Requirements
-- Schedule I on the default or `beta` branch (IL2CPP). Tested on **0.4.7f9**.
+- Schedule I on the default or `beta` branch (IL2CPP). Tested on **0.4.7f9 to f12**.
 - MelonLoader **0.7.3** or newer. Start the game with MelonLoader once before adding mods.
 
 PocketPlug is made for single-player. The Mono (`alternate`) branch isn't supported.
@@ -25,13 +31,13 @@ PocketPlug is made for single-player. The Mono (`alternate`) branch isn't suppor
 3. If you use IncreasedStackLimit-Latest, remove it. PocketPlug already includes it.
 
 ## Settings
-Open **Settings** on the phone to turn features on and off and to change the stack limits. Changes apply right away.
+Open **Settings** on the phone to turn features on and off and to change the stack and station limits. Changes apply right away, including on stations you've already placed.
 
 Everything is also stored in `UserData/PocketPlug.cfg`, which is picked up while the game is running if you edit it by hand. A stack limit of `0` keeps the game's value for that item type.
 
 ## Good to know
 - **Removing the mod:** the game cuts stacks above the normal limit down when a save loads, so split big stacks before uninstalling.
-- **Bank history:** stored next to the mod's settings, in `UserData/PocketPlug/history/`. It isn't saved inside your game save.
+- **Per-save data:** the bank history, payroll amounts and recent daily reports are kept in `UserData/PocketPlug/`, not inside the game save.
 
 ## Building
 You need the .NET SDK (6.0 or newer) and an IL2CPP copy of the game that has run once with MelonLoader. The project references `MelonLoader/net6` and `MelonLoader/Il2CppAssemblies` from that copy.

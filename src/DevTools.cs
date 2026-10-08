@@ -191,6 +191,42 @@ internal static class DevTools
                     }
                 }
                 break;
+            case "newday":
+                // Runs the morning routine as if the day just ended (auto-pay, sweep, report).
+                Features.Daily.Morning(NetworkSingleton<Il2CppScheduleOne.GameTime.TimeManager>.Instance.ElapsedDays - 1);
+                break;
+            case "payroll":
+                // payroll test: pay $1 to the first employee, log, then refund both sides (net zero).
+                foreach (var prop in Features.Payroll.Properties())
+                {
+                    foreach (var emp in Features.Payroll.Employees(prop))
+                    {
+                        float before = Features.Payroll.LockerCash(emp), bank = Features.Bank.Online;
+                        bool ok = Features.Payroll.Pay(emp, 1f, out string err);
+                        float after = Features.Payroll.LockerCash(emp);
+                        Core.Log.Msg($"payroll: {emp.FullName} @ {prop.PropertyName} ok={ok} err={err} locker {before} -> {after} bank {bank} -> {Features.Bank.Online}");
+                        if (ok)
+                        {
+                            emp.GetHome().RemoveCash(1f);
+                            Features.Bank.Receive(1f, "PocketPlug test refund");
+                            Core.Log.Msg($"payroll: refunded, locker {Features.Payroll.LockerCash(emp)}");
+                        }
+                        return;
+                    }
+                }
+                Core.Log.Warning("payroll: no employees");
+                break;
+            case "aab":
+                Features.Aab.Show();
+                break;
+            case "report":
+                Features.Daily.SendReportNow();
+                break;
+            case "employees":
+                foreach (var prop in Features.Payroll.Properties())
+                    foreach (var emp in Features.Payroll.Employees(prop))
+                        Core.Log.Msg($"employees: {prop.PropertyName} | {emp.FullName} | {emp.EmployeeType} | wage {emp.DailyWage} | locker {Features.Payroll.LockerCash(emp)} | paidToday={emp.PaidForToday}");
+                break;
             case "money":
                 Core.Log.Msg($"money: cash={Features.Bank.Cash} bank={Features.Bank.Online} week={Il2CppScheduleOne.Money.ATM.WeeklyDepositSum}");
                 break;

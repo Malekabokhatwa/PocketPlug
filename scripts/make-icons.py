@@ -16,6 +16,8 @@ APPS = {
     # name: (lucide icon, top color, bottom color)
     "app_settings": ("settings", (98, 104, 118), (52, 56, 66)),
     "app_bank": ("landmark", (64, 196, 120), (24, 122, 70)),
+    "app_payroll": ("wallet", (245, 166, 35), (196, 102, 20)),
+    "contact_aab": ("chart-column", (72, 140, 240), (36, 80, 170)),
 }
 GLYPHS = {  # small white glyphs used in notifications
     "glyph_bell": "bell",

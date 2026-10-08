@@ -43,7 +43,8 @@ internal static class Apps
 {
     public static readonly SettingsApp Settings = new();
     public static readonly BankApp Bank = new();
-    private static readonly CustomApp[] All = { Bank, Settings };
+    public static readonly PayrollApp Payroll = new();
+    private static readonly CustomApp[] All = { Bank, Payroll, Settings };
 
     private static HomeScreen _spawnedFor;
     private static GameInput.ExitDelegate _exitDelegate;

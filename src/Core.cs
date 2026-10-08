@@ -4,7 +4,7 @@ using PocketPlug.Features;
 using PocketPlug.Phone;
 using PocketPlug.Util;
 
-[assembly: MelonInfo(typeof(PocketPlug.Core), "PocketPlug", "1.0.2", "Malekabokhatwa",
+[assembly: MelonInfo(typeof(PocketPlug.Core), "PocketPlug", "2.0.0", "Malekabokhatwa",
     "https://github.com/Malekabokhatwa/PocketPlug")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
@@ -33,6 +33,9 @@ public sealed class Core : MelonMod
         ReadyAlerts.Reset();
         DealReminders.Reset();
         DealerTransfers.Reset();
+        EmployeeAlerts.Reset();
+        Payroll.Reset();
+        Daily.Reset();
 
         // One-time costs (first IL2CPP casts, opening files) happen here, behind the loading screen.
         if (sceneName == "Main")
@@ -40,6 +43,7 @@ public sealed class Core : MelonMod
             Perf.Begin();
             Safe(ReadyAlerts.Warmup);
             Safe(BankHistory.Warmup);
+            Safe(DealerTransfers.Warmup);
             Perf.End("Warmup (loading screen)");
         }
     }
@@ -57,6 +61,7 @@ public sealed class Core : MelonMod
         Safe(ReadyAlerts.Update);
         Safe(DealReminders.Update);
         Safe(DealerTransfers.Update);
+        Safe(Daily.Update);
     }
 
     public override void OnLateUpdate()

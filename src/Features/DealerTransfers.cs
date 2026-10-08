@@ -21,17 +21,27 @@ internal static class DealerTransfers
     private static readonly HashSet<IntPtr> Added = new();
     private static float _next;
 
+    /// <summary>
+    /// The first DelegateSupport conversion per delegate type builds a native trampoline (several ms); do both
+    /// kinds used here while the loading screen is up.
+    /// </summary>
+    public static void Warmup()
+    {
+        DelegateSupport.ConvertDelegate<SendableMessage.BoolCheck>(new Func<SendableMessage, bool>(_ => true));
+        DelegateSupport.ConvertDelegate<Il2CppSystem.Action>(new Action(() => { }));
+    }
+
     public static void Reset()
     {
         Added.Clear();
-        _next = Time.unscaledTime + 3f;
+        _next = 0f;   // start right away, while the loading screen is still up
     }
 
     public static void Update()
     {
         if (Time.unscaledTime < _next)
             return;
-        _next = Time.unscaledTime + 2f;
+        _next = Time.unscaledTime + 0.5f;
 
         var dealers = Dealer.AllPlayerDealers;
         for (int i = 0; i < dealers.Count; i++)

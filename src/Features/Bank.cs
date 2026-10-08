@@ -221,6 +221,7 @@ internal static class AtmNoLimit
     [HarmonyPrefix]
     private static void Prefix(out float __state)
     {
+        Util.Perf.Begin();
         __state = float.NaN;
         if (!Config.NoDepositLimit.On || ATM.WeeklyDepositSum <= Masked / 2)
             return;
@@ -232,6 +233,7 @@ internal static class AtmNoLimit
     [HarmonyPriority(Priority.First)]
     private static void Postfix(float __state)
     {
+        Util.Perf.End("AtmNoLimit (one ATM method)");
         if (!float.IsNaN(__state))
             ATM.WeeklyDepositSum = __state + (ATM.WeeklyDepositSum - Masked);
     }

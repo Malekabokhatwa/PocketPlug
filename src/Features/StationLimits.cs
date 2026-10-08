@@ -108,11 +108,21 @@ internal static class StationLimits
 [HarmonyPatch(typeof(MixingStation), nameof(MixingStation.Awake))]
 internal static class MixingStationAwakePatch
 {
-    private static void Postfix(MixingStation __instance) => StationLimits.Apply(__instance);
+    private static void Postfix(MixingStation __instance)
+    {
+        Util.Perf.Begin();
+        StationLimits.Apply(__instance);
+        Util.Perf.End("StationLimits.Awake(mixer)");
+    }
 }
 
 [HarmonyPatch(typeof(DryingRack), nameof(DryingRack.Awake))]
 internal static class DryingRackAwakePatch
 {
-    private static void Postfix(DryingRack __instance) => StationLimits.Apply(__instance);
+    private static void Postfix(DryingRack __instance)
+    {
+        Util.Perf.Begin();
+        StationLimits.Apply(__instance);
+        Util.Perf.End("StationLimits.Awake(rack)");
+    }
 }
