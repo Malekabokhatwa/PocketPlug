@@ -39,6 +39,7 @@ public sealed class Core : MelonMod
         Safe(Payroll.Reset);
         Safe(Daily.Reset);
         Safe(StackLimits.ApplyAll);
+        Safe(Backroom.Backroom.Reset);
 
         // One-time costs (first IL2CPP casts, opening files) happen here, behind the loading screen.
         if (sceneName == "Main")
@@ -47,6 +48,7 @@ public sealed class Core : MelonMod
             Safe(ReadyAlerts.Warmup);
             Safe(BankHistory.Warmup);
             Safe(DealerTransfers.Warmup);
+            Safe(Backroom.Backroom.Warmup);
             Perf.End("Warmup (loading screen)");
         }
     }
@@ -65,6 +67,7 @@ public sealed class Core : MelonMod
         Safe(DealReminders.Update);
         Safe(DealerTransfers.Update);
         Safe(Daily.Update);
+        Safe(Backroom.Backroom.Update);
     }
 
     public override void OnLateUpdate()

@@ -83,8 +83,12 @@ internal static class Config
     public static readonly Toggle DailyReport = new("DailyReport", "Daily report",
         "Every morning, PocketPlug AAB texts you yesterday's numbers.");
 
+    public static readonly Toggle Backroom = new("Backroom", "Backroom",
+        "Hold B to open the PocketPlug mod menu.");
+
     public static readonly Toggle[] Toggles =
     {
+        Backroom,
         CompassDeals, SkateStamina, BankApp, NoDepositLimit, DealerTransfers, ReadyAlerts, DealExpiry, StackLimits,
         StationLimits, HalfMixTime, EmployeeAlerts, Payroll, DealerSweep, DailyReport
     };
@@ -112,6 +116,11 @@ internal static class Config
         new(ItemGroup.Other, "OtherLimit", "Everything else", "Acid, trash bags, spray paint..."),
     };
 
+    /// <summary>The key held to open Backroom (a UnityEngine.InputSystem.Key name).</summary>
+    public static MelonPreferences_Entry<string> BackroomKey;
+    /// <summary>How long the key is held before Backroom opens, in seconds.</summary>
+    public static MelonPreferences_Entry<float> BackroomHold;
+
     private static MelonPreferences_Category _category;
     private static DateTime _lastWrite;
     private static float _nextCheck;
@@ -131,6 +140,9 @@ internal static class Config
 
         foreach (var s in Stations)
             s.Entry = _category.CreateEntry(s.Key, s.Default, s.Title, $"{s.Title}: {s.Description}. 0 = game default.");
+
+        BackroomKey = _category.CreateEntry("BackroomKey", "B", "Backroom key", "Key held to open Backroom (e.g. B, F1, Insert).");
+        BackroomHold = _category.CreateEntry("BackroomHold", 0.35f, "Backroom hold time", "Seconds the key is held to open Backroom.");
 
         _category.SetFilePath(FilePath, autoload: true, printmsg: false);
         Save();

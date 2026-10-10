@@ -9,7 +9,10 @@ internal static class Assets
 {
     private static readonly Dictionary<string, Sprite> Cache = new();
 
-    public static Sprite Sprite(string name)
+    public static Sprite Sprite(string name) => Sprite(name, Vector4.zero);
+
+    /// <summary>A sprite with 9-slice borders (left, bottom, right, top, in pixels), for panels that stretch.</summary>
+    public static Sprite Sprite(string name, Vector4 border)
     {
         if (Cache.TryGetValue(name, out var cached) && cached != null)
             return cached;
@@ -29,7 +32,9 @@ internal static class Assets
         tex.wrapMode = TextureWrapMode.Clamp;
         tex.hideFlags = HideFlags.DontUnloadUnusedAsset;
 
-        var sprite = UnityEngine.Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+        tex.filterMode = FilterMode.Bilinear;
+        var sprite = UnityEngine.Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f,
+            0, SpriteMeshType.FullRect, border);
         sprite.name = $"PocketPlug_{name}";
         sprite.hideFlags = HideFlags.DontUnloadUnusedAsset;
         Cache[name] = sprite;
