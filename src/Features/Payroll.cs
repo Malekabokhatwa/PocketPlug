@@ -39,8 +39,13 @@ internal static class Payroll
         {
             if (_data != null)
                 return _data;
+            // No save path yet (still loading): hand out a throwaway, so an empty cache can't later be saved
+            // over the real file.
+            var file = Util.SaveKey.File("payroll", ".json");
+            if (file == null)
+                return new Data();
+            _file = file;
             _data = new Data();
-            _file = Util.SaveKey.File("payroll", ".json");
             try
             {
                 if (_file != null && File.Exists(_file))

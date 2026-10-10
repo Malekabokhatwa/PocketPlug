@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 using MelonLoader;
 using PocketPlug.Features;
 using PocketPlug.Phone;
@@ -26,16 +28,17 @@ public sealed class Core : MelonMod
     public override void OnSceneWasInitialized(int buildIndex, string sceneName)
     {
         Log.Msg($"Scene ready: {sceneName}");
-        StackLimits.ApplyAll();
-        StationLimits.Reset();
-        Apps.OnSceneChanged();
-        BankHistory.OnSceneChanged();
-        ReadyAlerts.Reset();
-        DealReminders.Reset();
-        DealerTransfers.Reset();
-        EmployeeAlerts.Reset();
-        Payroll.Reset();
-        Daily.Reset();
+        // Each step guarded on its own: one failure must not leave the previous save's state in the others.
+        Safe(StationLimits.Reset);
+        Safe(Apps.OnSceneChanged);
+        Safe(BankHistory.OnSceneChanged);
+        Safe(ReadyAlerts.Reset);
+        Safe(DealReminders.Reset);
+        Safe(DealerTransfers.Reset);
+        Safe(EmployeeAlerts.Reset);
+        Safe(Payroll.Reset);
+        Safe(Daily.Reset);
+        Safe(StackLimits.ApplyAll);
 
         // One-time costs (first IL2CPP casts, opening files) happen here, behind the loading screen.
         if (sceneName == "Main")
@@ -52,7 +55,7 @@ public sealed class Core : MelonMod
     {
         float now = UnityEngine.Time.unscaledTime;
         Perf.CheckFrame();
-        Config.ReloadIfChanged(now);
+        Safe(ReloadConfig);
         DevTools.Poll(now);
 
         Safe(SkateStamina.Update);
@@ -70,33 +73,38 @@ public sealed class Core : MelonMod
         Safe(CompassDeals.LateUpdate);
     }
 
+    private static void ReloadConfig() => Config.ReloadIfChanged(UnityEngine.Time.unscaledTime);
+
     private static void OnConfigChanged()
     {
-        StackLimits.ApplyAll();
+        Safe(StackLimits.ApplyAll);
         Safe(StationLimits.ApplyAll);
-        CompassDeals.Refresh();
-        Apps.Refresh();
+        Safe(CompassDeals.Refresh);
+        Safe(Apps.Refresh);
     }
 
-    private static string _lastError;
+    private static readonly Dictionary<MethodInfo, string> LastErrors = new();
 
-    /// <summary>Runs a per-frame feature without letting one exception spam the log every frame.</summary>
+    /// <summary>Runs a feature step without letting one exception spam the log every frame.</summary>
     private static void Safe(Action action)
     {
+        Perf.Begin();
         try
         {
-            Perf.Begin();
             action();
-            Perf.End(action.Method.DeclaringType?.Name);
         }
         catch (Exception e)
         {
             string message = e.ToString();
-            if (message != _lastError)
+            if (!LastErrors.TryGetValue(action.Method, out var last) || last != message)
             {
-                _lastError = message;
+                LastErrors[action.Method] = message;
                 Log.Error(message);
             }
+        }
+        finally
+        {
+            Perf.End(action.Method.DeclaringType?.Name);
         }
     }
 }
