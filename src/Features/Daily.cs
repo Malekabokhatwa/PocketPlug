@@ -122,12 +122,14 @@ internal static class Daily
 
         SampleDealers();
 
+        // Advance first: if the morning routine throws, it must not run again (and sweep, pay, text) every poll.
         int day = NetworkSingleton<TimeManager>.Instance.ElapsedDays;
-        if (_lastDay >= 0 && day == _lastDay + 1)
-            Morning(_lastDay);
-        else if (_lastDay >= 0 && day != _lastDay)
-            Core.Log.Msg($"Day changed {_lastDay} -> {day} without a normal day pass; not running the morning routine.");
+        int previous = _lastDay;
         _lastDay = day;
+        if (previous >= 0 && day == previous + 1)
+            Morning(previous);
+        else if (previous >= 0 && day != previous)
+            Core.Log.Msg($"Day changed {previous} -> {day} without a normal day pass; not running the morning routine.");
     }
 
     private static void SampleDealers()
@@ -187,14 +189,12 @@ internal static class Daily
             var d = dealers[i];
             if (d == null || !d.IsRecruited)
                 continue;
-            float amount = Mathf.Floor(d.Cash);
-            if (amount < 1f)
+            float amount = Bank.CollectFrom(d);
+            if (amount <= 0f)
                 continue;
-            d.SetCash(d.Cash - amount);
-            Bank.Receive(amount, d.FullName);
             var s = Stat(d);
             s.Swept += amount;
-            s.LastCash = d.Cash - amount;
+            s.LastCash = d.Cash;
             total += amount;
             count++;
         }
@@ -371,9 +371,16 @@ internal static class Aab
         }
         EnsureRestored();
         convo.SendMessage(new Message(text, Message.ESenderType.Other, true, -1), notify, false);
-        var all = Load();
-        all.Add(text);
-        Store(all.Skip(Math.Max(0, all.Count - Keep)).ToList());
+        try
+        {
+            var all = Load();
+            all.Add(text);
+            Store(all.Skip(Math.Max(0, all.Count - Keep)).ToList());
+        }
+        catch (Exception e)
+        {
+            Core.Log.Warning($"Daily report: couldn't save the report ({e.Message}).");
+        }
     }
 
     private static List<string> Load()

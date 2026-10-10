@@ -90,6 +90,22 @@ internal static class Bank
     {
         NetworkSingleton<MoneyManager>.Instance.CreateOnlineTransaction("Transfer", amount, 1f, $"From {from}");
     }
+
+    /// <summary>
+    /// Moves a dealer's whole dollars to the bank and returns the amount (0 if they hold less than $1).
+    /// Dealer.SetCash is a server RPC that only lands a tick later, so a second read in between would see the old
+    /// cash and pay out twice. We're always the host here, so the server side is applied directly.
+    /// </summary>
+    public static float CollectFrom(Il2CppScheduleOne.Economy.Dealer dealer)
+    {
+        float amount = UnityEngine.Mathf.Floor(dealer.Cash);
+        if (amount < 1f)
+            return 0f;
+        dealer.RpcLogic___SetCash_431000436(dealer.Cash - amount);
+        Receive(amount, dealer.FullName);
+        Core.Log.Msg($"Collected {amount} from {dealer.FullName} (left {dealer.Cash}, bank {Online})");
+        return amount;
+    }
 }
 
 /// <summary>
@@ -147,12 +163,11 @@ internal static class BankHistory
         var ledger = NetworkSingleton<MoneyManager>.Instance.ledger;
         if (ledger.Count < _seenLedgerCount)
             _seenLedgerCount = 0;
-        for (int i = _seenLedgerCount; i < ledger.Count; i++)
+        while (_seenLedgerCount < ledger.Count)
         {
-            var t = ledger[i];
+            var t = ledger[_seenLedgerCount++];
             Add(new Entry { When = Now(), Name = t.transaction_Name, Note = t.transaction_Note, Amount = t.total_Amount }, true);
         }
-        _seenLedgerCount = ledger.Count;
     }
 
     private static void Open()
@@ -180,8 +195,15 @@ internal static class BankHistory
         if (persist && _file != null)
         {
             string Clean(string s) => (s ?? "").Replace('\t', ' ').Replace('\n', ' ');
-            File.AppendAllText(_file,
-                $"{Clean(e.When)}\t{Clean(e.Name)}\t{Clean(e.Note)}\t{e.Amount.ToString(CultureInfo.InvariantCulture)}\n");
+            try
+            {
+                File.AppendAllText(_file,
+                    $"{Clean(e.When)}\t{Clean(e.Name)}\t{Clean(e.Note)}\t{e.Amount.ToString(CultureInfo.InvariantCulture)}\n");
+            }
+            catch (IOException ex)
+            {
+                Core.Log.Warning($"Bank history: couldn't write the history file ({ex.Message}).");
+            }
         }
     }
 
@@ -229,9 +251,11 @@ internal static class AtmNoLimit
         ATM.WeeklyDepositSum = Masked;
     }
 
-    [HarmonyPostfix]
+    // A finalizer, not a postfix: it also runs if the game's method throws, so the -1e9 mask can never stick
+    // (and get saved).
+    [HarmonyFinalizer]
     [HarmonyPriority(Priority.First)]
-    private static void Postfix(float __state)
+    private static void Finalizer(float __state)
     {
         Util.Perf.End("AtmNoLimit (one ATM method)");
         if (!float.IsNaN(__state))

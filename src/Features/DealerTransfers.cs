@@ -67,7 +67,7 @@ internal static class DealerTransfers
 
     public static void Transfer(Dealer dealer, MSGConversation convo)
     {
-        float amount = Mathf.Floor(dealer.Cash);
+        float amount = Bank.CollectFrom(dealer);
         string reply;
         if (amount <= 0f)
         {
@@ -75,8 +75,6 @@ internal static class DealerTransfers
         }
         else
         {
-            dealer.SetCash(dealer.Cash - amount);
-            Bank.Receive(amount, dealer.FullName);
             reply = $"Sent {MoneyManager.FormatAmount(amount)} to your account.";
             Singleton<NotificationsManager>.Instance.SendNotification(
                 $"{dealer.FirstName} sent you {MoneyManager.FormatAmount(amount)}", "Bank transfer", Util.Npcs.Mugshot(dealer), 5f, true);
