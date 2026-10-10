@@ -35,9 +35,11 @@ internal static class DevTools
 
     public static void Poll(float now)
     {
-        if (!_enabled || now < _nextPoll || !File.Exists(CommandPath))
+        if (!_enabled || now < _nextPoll)
             return;
         _nextPoll = now + 0.5f;
+        if (!File.Exists(CommandPath))
+            return;
 
         // Wine can lag on deletes, so never run the same file twice.
         var write = File.GetLastWriteTimeUtc(CommandPath);
@@ -60,6 +62,35 @@ internal static class DevTools
                 Core.Log.Error($"dev '{line}': {e}");
             }
         }
+    }
+
+    private static void MixTest(string arg)
+    {
+        string[] args = arg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        int quantity = args.Length > 0 ? int.Parse(args[0]) : 20;
+        int minutes = args.Length > 1 ? int.Parse(args[1]) : 0;
+        var products = NetworkSingleton<Il2CppScheduleOne.Product.ProductManager>.Instance;
+        if (products.mixRecipes.Count == 0)
+        {
+            Core.Log.Msg("mixtest: no known mix recipes in this save");
+            return;
+        }
+        var recipe = products.mixRecipes[0];
+        string a = recipe.Ingredients[0].Items[0].ID, b = recipe.Ingredients[1].Items[0].ID;
+        if (products.GetRecipe(a, b) == null)
+            (a, b) = (b, a);
+        foreach (var prop in Il2CppScheduleOne.Property.Property.OwnedProperties)
+            foreach (var it in prop.BuildableItems)
+            {
+                var mix = it?.TryCast<Il2CppScheduleOne.ObjectScripts.MixingStationMk2>();
+                if (mix == null || mix.CurrentMixOperation != null || mix.OutputSlot.Quantity > 0)
+                    continue;
+                var op = new Il2CppScheduleOne.ObjectScripts.MixOperation(a, Il2CppScheduleOne.ItemFramework.EQuality.Standard, b, quantity);
+                mix.SetMixOperation(null, op, minutes);
+                Core.Log.Msg($"mixtest: {prop.PropertyName} {a}+{b} x{quantity} from {minutes} min, total {mix.GetMixTimeForCurrentOperation()} min, known={op.IsOutputKnown(out _)}");
+                return;
+            }
+        Core.Log.Msg("mixtest: no idle Mk2 mixer");
     }
 
     private static void Run(string line)
@@ -190,6 +221,63 @@ internal static class DevTools
                             Core.Log.Msg($"stations: {prop.PropertyName} | drying rack | capacity={rack.ItemCapacity} sliderMax={(rack.stationConfiguration?.StartThreshold != null ? rack.stationConfiguration.StartThreshold.MaxValue : -1)}");
                     }
                 }
+                break;
+            case "fps":
+                Core.Log.Msg($"fps: {1f / Time.smoothDeltaTime:F0} now, vSyncCount={QualitySettings.vSyncCount} targetFrameRate={Application.targetFrameRate} refresh={Screen.currentResolution.refreshRateRatio.value:F0} quality={QualitySettings.GetQualityLevel()}");
+                break;
+            case "dealers":
+                foreach (var d in Il2CppScheduleOne.Economy.Dealer.AllPlayerDealers)
+                    if (d != null)
+                        Core.Log.Msg($"dealers: {d.FullName} recruited={d.IsRecruited} cash={d.Cash}");
+                break;
+            case "collecttest":
+                // Gives the first dealer $50 (server side, instant), collects it to the bank, then takes it back.
+                foreach (var d in Il2CppScheduleOne.Economy.Dealer.AllPlayerDealers)
+                {
+                    if (d == null)
+                        continue;
+                    float bank = Features.Bank.Online, cash = d.Cash;
+                    d.RpcLogic___SetCash_431000436(cash + 50f);
+                    float got = Features.Bank.CollectFrom(d);
+                    Core.Log.Msg($"collecttest: {d.FullName} got={got} dealer {cash} -> {d.Cash} bank {bank} -> {Features.Bank.Online}");
+                    float again = Features.Bank.CollectFrom(d);
+                    Core.Log.Msg($"collecttest: second collect got={again} (must be 0)");
+                    NetworkSingleton<MoneyManager>.Instance.CreateOnlineTransaction("Test", -got, 1f, "PocketPlug test refund");
+                    d.RpcLogic___SetCash_431000436(cash);
+                    Core.Log.Msg($"collecttest: refunded, dealer {d.Cash} bank {Features.Bank.Online}");
+                    return;
+                }
+                break;
+            case "cap":
+                // cap <fps>: frame cap for this session only (the game's own setting is untouched).
+                Application.targetFrameRate = int.Parse(arg);
+                Core.Log.Msg($"cap: targetFrameRate={Application.targetFrameRate}");
+                break;
+            case "mixtest":
+                // mixtest [quantity] [minutes already mixed]: starts a known recipe on the first idle Mk2 mixer.
+                // Test only: the product comes from nothing, so clear it with "mixclear" and don't save.
+                MixTest(arg);
+                break;
+            case "mixclear":
+                foreach (var prop in Il2CppScheduleOne.Property.Property.OwnedProperties)
+                    foreach (var it in prop.BuildableItems)
+                    {
+                        var mix = it?.TryCast<Il2CppScheduleOne.ObjectScripts.MixingStationMk2>();
+                        if (mix != null && mix.OutputSlot.Quantity > 0 && mix.ProductSlot.Quantity == 0)
+                        {
+                            Core.Log.Msg($"mixclear: removed {mix.OutputSlot.Quantity} from {prop.PropertyName}");
+                            mix.OutputSlot.SetQuantity(0);
+                        }
+                    }
+                break;
+            case "mixstate":
+                foreach (var prop in Il2CppScheduleOne.Property.Property.OwnedProperties)
+                    foreach (var it in prop.BuildableItems)
+                    {
+                        var mix = it?.TryCast<Il2CppScheduleOne.ObjectScripts.MixingStation>();
+                        if (mix?.CurrentMixOperation != null)
+                            Core.Log.Msg($"mixstate: {prop.PropertyName} qty={mix.CurrentMixOperation.Quantity} time={mix.CurrentMixTime}/{mix.GetMixTimeForCurrentOperation()} done={mix.IsMixingDone} output={mix.OutputSlot.Quantity} screen='{mix.TryCast<Il2CppScheduleOne.ObjectScripts.MixingStationMk2>()?.ProgressLabel?.text}'");
+                    }
                 break;
             case "newday":
                 // Runs the morning routine as if the day just ended (auto-pay, sweep, report).
