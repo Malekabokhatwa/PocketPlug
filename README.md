@@ -11,6 +11,7 @@ A quality-of-life [MelonLoader](https://github.com/LavaGang/MelonLoader) mod for
 - **Ready alerts.** Phone notifications when plants or shrooms are ready to harvest, and when mixing stations, drying racks, chemistry stations, lab ovens and cauldrons finish.
 - **Deal reminders.** A notification when one of your deals has about an in-game hour left.
 - **Bigger mixing batches and drying racks.** The Mk2 mixing station takes up to 250 items per mix, the Mk1 up to 125, and drying racks hold 250, all adjustable. Mix time scales with the batch: if 20 items take an hour, 40 take two.
+- **Half Mixing Time.** Mixing stations finish in half the time: 20 items on a Mk2 take 30 in-game minutes instead of 60, and 10 take 15. On by default; the station's screen counts down in real minutes. Progress is stored in the game's own units, so switching it off (or removing the mod) never breaks a running mix.
   - A batch can't be bigger than one product stack, so it never overflows the output slot.
 - **Payroll app.** Pay employees from your bank instead of putting cash in their lockers. Pick a property, set how much each employee gets, then tap Pay or Pay all. Optional per-property **Auto-pay** tops each locker up every morning.
 - **Employee alerts.** A notification when an employee can't work because they're out of seeds, soil, shroom spawn or product and packaging, or because their output has nowhere to go.

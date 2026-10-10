@@ -4,6 +4,27 @@ Versions follow `MAJOR.MINOR.PATCH`: bug fixes bump PATCH, new features bump MIN
 To release: bump `<Version>` in `src/PocketPlug.csproj` and the version in `src/Core.cs`'s `MelonInfo`, add an entry
 here, commit, tag `vX.Y.Z`, and attach `PocketPlug.dll` to a GitHub release.
 
+## 2.1.1 (2026-10-10)
+**New**
+- **Half Mixing Time** (Settings, on by default): mixing stations finish in half the time, so 20 items on a Mk2 take 30 minutes instead of 60 and 10 items take 15. The Mk2 screen shows the real minutes left. Switching it off mid-mix keeps the progress.
+
+**Fixed**
+- Dealer transfers and the morning sweep could pay the same cash twice if triggered twice within a tick: the dealer's cash only dropped on the next network tick. It now drops immediately.
+- If the morning routine ever failed (for example, the report file couldn't be written), it ran again every 2 seconds: repeated sweeps and repeated report texts. It now runs once per day no matter what.
+- Lowering a station limit (or turning Station limits or Bigger stacks off) could leave a station's start threshold above its new maximum, and employees would never start a batch there. The threshold is now lowered with the maximum.
+- A hand-edited product stack limit above 9999 let mix batches overflow one stack.
+- If the ATM's own code threw, the deposit total could stay masked at -1e9 and get saved. It's now always restored.
+- A failed write to the bank history file re-added the same entries every frame.
+- Payroll settings could be overwritten with empty ones if the Payroll app was touched before the save had finished loading.
+- One failing step when loading a save could leave the previous save's state (day, history file, payroll) in place. Each step is now isolated, as are settings changes.
+
+**Faster**
+- Ready alerts re-checked every untracked item (furniture, lights, storage) on every pass. Each item is now worked out once.
+- Each tap in Settings searched the scene for the item registry and re-classified every item. Both are now cached.
+- Employee alerts built strings every tick for each idle employee. They now check a cheap key first.
+
+**Stutter note:** the stutter reported after 2.0.0 isn't the mod. With no frame cap the game runs both chips flat out, and on this laptop the CPU sat at 93-96 °C (its throttle point is 100 °C) and the GPU thermal-throttled nonstop. Capping the frame rate at 60 dropped GPU throttling from 100% of the time to none. Dev mode now logs slow seconds (fps below 40, with GC and game-log counts) so drops like this can be pinned down.
+
 ## 2.0.0 (2026-10-09)
 **New**
 - Mixing station limits: Mk2 up to 250 items per mix, Mk1 up to 125. Mix time scales with the batch.

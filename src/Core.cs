@@ -6,7 +6,7 @@ using PocketPlug.Features;
 using PocketPlug.Phone;
 using PocketPlug.Util;
 
-[assembly: MelonInfo(typeof(PocketPlug.Core), "PocketPlug", "2.0.0", "Malekabokhatwa",
+[assembly: MelonInfo(typeof(PocketPlug.Core), "PocketPlug", "2.1.1", "Malekabokhatwa",
     "https://github.com/Malekabokhatwa/PocketPlug")]
 [assembly: MelonGame("TVGS", "Schedule I")]
 
