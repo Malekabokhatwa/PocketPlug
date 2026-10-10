@@ -72,6 +72,8 @@ internal static class Config
         "Raises stack limits per item type (set below).");
     public static readonly Toggle StationLimits = new("StationLimits", "Station limits",
         "Bigger mixing station batches and drying racks (set below).");
+    public static readonly Toggle HalfMixTime = new("HalfMixTime", "Half Mixing Time",
+        "Mixing stations finish in half the time.");
     public static readonly Toggle EmployeeAlerts = new("EmployeeAlerts", "Employee alerts",
         "Notifies you when an employee is out of supplies or stuck.");
     public static readonly Toggle Payroll = new("Payroll", "Payroll app",
@@ -84,7 +86,7 @@ internal static class Config
     public static readonly Toggle[] Toggles =
     {
         CompassDeals, SkateStamina, BankApp, NoDepositLimit, DealerTransfers, ReadyAlerts, DealExpiry, StackLimits,
-        StationLimits, EmployeeAlerts, Payroll, DealerSweep, DailyReport
+        StationLimits, HalfMixTime, EmployeeAlerts, Payroll, DealerSweep, DailyReport
     };
 
     public static readonly StackSetting Mk1MixLimit =

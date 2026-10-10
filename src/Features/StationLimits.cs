@@ -8,7 +8,7 @@ using Property = Il2CppScheduleOne.Property.Property;
 namespace PocketPlug.Features;
 
 /// <summary>
-/// Bigger batches for mixing stations (Mk1 and Mk2 separately) and bigger drying racks.
+/// Bigger batches for mixing stations (Mk1 and Mk2 separately), bigger drying racks, and Half Mixing Time.
 /// Mix time is MixTimePerItem x quantity in the game, so time scales with the batch on its own.
 /// Every limit is clamped to the product stack limit in force, because a finished batch is added to the output
 /// slot in one go and must fit there.
@@ -24,7 +24,7 @@ internal static class StationLimits
     /// <summary>The biggest batch an output slot can take right now.</summary>
     public static int OutputCap =>
         Config.StackLimits.On && Config.LimitFor(ItemGroup.Product) > VanillaProductStack
-            ? Config.LimitFor(ItemGroup.Product)
+            ? Math.Min(Config.LimitFor(ItemGroup.Product), Config.MaxStackLimit)
             : VanillaProductStack;
 
     /// <summary>What a setting actually applies as (0 = game default, otherwise clamped to the output cap).</summary>
@@ -51,7 +51,7 @@ internal static class StationLimits
             return;
         station.MaxMixQuantity = target;
         // The start threshold slider was sized from the old maximum when the station was placed.
-        station.stationConfiguration?.StartThrehold?.Configure(1f, target, true);
+        Resize(station.stationConfiguration?.StartThrehold, target);
     }
 
     public static void Apply(DryingRack rack)
@@ -68,7 +68,20 @@ internal static class StationLimits
         if (rack.ItemCapacity == target)
             return;
         rack.ItemCapacity = target;
-        rack.stationConfiguration?.StartThreshold?.Configure(1f, target, true);
+        Resize(rack.stationConfiguration?.StartThreshold, target);
+    }
+
+    /// <summary>
+    /// Resizes a station's start threshold. Configure doesn't clamp the stored value, and employees wait until a
+    /// batch reaches it, so a threshold left above a lowered maximum would stall them for good.
+    /// </summary>
+    private static void Resize(Il2CppScheduleOne.Management.NumberField threshold, int max)
+    {
+        if (threshold == null)
+            return;
+        threshold.Configure(1f, max, true);
+        if (threshold.Value > max)
+            threshold.SetValue(max, true);
     }
 
     /// <summary>Re-applies to every station at owned properties (after a settings change).</summary>
@@ -124,5 +137,55 @@ internal static class DryingRackAwakePatch
         Util.Perf.Begin();
         StationLimits.Apply(__instance);
         Util.Perf.End("StationLimits.Awake(rack)");
+    }
+}
+
+/// <summary>
+/// Half Mixing Time: mixes run their clock at double speed, so 20 items on a Mk2 take 30 minutes instead of 60.
+/// The game's total and saved progress stay in its own minutes (toggling or removing the mod never strands a mix);
+/// only the countdowns are shown in real minutes. GetMixTimeForCurrentOperation can't be patched instead: the
+/// game's native code inlines it.
+/// </summary>
+internal static class HalfMixTime
+{
+    public static bool Active(MixingStation station) => Config.HalfMixTime.On && station.CurrentMixOperation != null;
+
+    /// <summary>Real minutes left, rounded up.</summary>
+    public static int Remaining(MixingStation station) =>
+        (Math.Max(station.GetMixTimeForCurrentOperation() - station.CurrentMixTime, 0) + 1) / 2;
+}
+
+[HarmonyPatch(typeof(MixingStation), nameof(MixingStation.OnTimePass))]
+internal static class MixingStationTimePassPatch
+{
+    private static void Prefix(MixingStation __instance, ref int minutes)
+    {
+        if (HalfMixTime.Active(__instance))
+            minutes *= 2;
+    }
+
+    private static void Postfix(MixingStation __instance)
+    {
+        if (HalfMixTime.Active(__instance) && __instance.Clock != null)
+            __instance.Clock.DisplayMinutes(HalfMixTime.Remaining(__instance));
+    }
+}
+
+/// <summary>The Mk2 screen writes its own "mins remaining" after the base tick and when a mix starts.</summary>
+[HarmonyPatch(typeof(MixingStationMk2))]
+internal static class MixingStationMk2ScreenPatch
+{
+    [HarmonyPostfix]
+    [HarmonyPatch(nameof(MixingStationMk2.OnTimePass))]
+    private static void AfterTimePass(MixingStationMk2 __instance) => Relabel(__instance);
+
+    [HarmonyPostfix]
+    [HarmonyPatch(nameof(MixingStationMk2.MixingStart))]
+    private static void AfterStart(MixingStationMk2 __instance) => Relabel(__instance);
+
+    private static void Relabel(MixingStationMk2 station)
+    {
+        if (HalfMixTime.Active(station) && station.ProgressLabel != null)
+            station.ProgressLabel.text = HalfMixTime.Remaining(station) + " mins remaining";
     }
 }
