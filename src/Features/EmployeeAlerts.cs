@@ -16,24 +16,25 @@ namespace PocketPlug.Features;
 [HarmonyPatch(typeof(Employee), nameof(Employee.SubmitNoWorkReason))]
 internal static class EmployeeAlerts
 {
-    private static readonly HashSet<string> SentToday = new();
+    /// <summary>Employee, reason and fix seen today (alerted or ignored), so each pair is only looked at once.</summary>
+    private static readonly HashSet<(int, string, string)> SeenToday = new();
 
     /// <summary>Called by the morning routine so blocked employees get reminded again the next day.</summary>
-    public static void NewDay() => SentToday.Clear();
+    public static void NewDay() => SeenToday.Clear();
 
-    public static void Reset() => SentToday.Clear();
+    public static void Reset() => SeenToday.Clear();
 
     private static void Postfix(Employee __instance, string reason, string fix)
     {
         if (!Config.EmployeeAlerts.On || __instance == null || string.IsNullOrEmpty(reason))
             return;
 
-        var (title, detail) = Classify(reason, fix);
-        if (title == null)
+        // The game repeats this every tick while the employee is idle: check the cheap key before anything else.
+        if (!SeenToday.Add((__instance.GetInstanceID(), reason, fix)))
             return;
 
-        string key = __instance.GUID.ToString() + "|" + reason;
-        if (!SentToday.Add(key) || !Singleton<NotificationsManager>.InstanceExists)
+        var (title, detail) = Classify(reason, fix);
+        if (title == null || !Singleton<NotificationsManager>.InstanceExists)
             return;
 
         Singleton<NotificationsManager>.Instance.SendNotification(

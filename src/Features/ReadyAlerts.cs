@@ -57,6 +57,7 @@ internal static class ReadyAlerts
 
     private static readonly Dictionary<IntPtr, Tracked> Cache = new();
     private static readonly List<BuildableItem> Pass = new();
+    private static readonly List<IntPtr> Stale = new();
     private static int _cursor;
     private static float _nextPass;
     private static bool _primed;
@@ -83,7 +84,7 @@ internal static class ReadyAlerts
         foreach (var item in Pass)
         {
             if (item != null && !Cache.ContainsKey(item.Pointer))
-                Cache[item.Pointer] = Classify(item);
+                Cache[item.Pointer] = Track(item);
         }
         Core.Log.Msg($"Ready alerts: {Cache.Count} items prepared while loading.");
         Pass.Clear();
@@ -150,13 +151,13 @@ internal static class ReadyAlerts
     private static void FinishPass()
     {
         // Forget items that weren't in this pass (sold, picked up, destroyed).
-        var stale = new List<IntPtr>();
+        Stale.Clear();
         foreach (var kv in Cache)
         {
-            if (kv.Value == null || kv.Value.Pass != _passId)
-                stale.Add(kv.Key);
+            if (kv.Value.Pass != _passId)
+                Stale.Add(kv.Key);
         }
-        foreach (var key in stale)
+        foreach (var key in Stale)
             Cache.Remove(key);
         _passId++;
 
@@ -169,20 +170,26 @@ internal static class ReadyAlerts
         _cursor = 0;
     }
 
+    /// <summary>
+    /// Items that aren't tracked (furniture, lights...) are cached too, with no kind, so they're classified once
+    /// instead of on every pass.
+    /// </summary>
+    private static Tracked Track(BuildableItem item) => Classify(item) ?? new Tracked { Owner = item };
+
     private static void Check(BuildableItem item)
     {
         if (item == null)
             return;
-        if (!Cache.TryGetValue(item.Pointer, out var t) || (t != null && t.Owner == null))
+        if (!Cache.TryGetValue(item.Pointer, out var t) || t.Owner == null)
         {
             // New item, or the cached one was destroyed and its native pointer reused.
             _classifiedThisFrame++;
-            t = Classify(item);
+            t = Track(item);
             Cache[item.Pointer] = t;
         }
-        if (t == null)
-            return;
         t.Pass = _passId;
+        if (t.Kind == null)
+            return;
 
         int value = t.Read();
         int output = t.Output != null ? t.Output() : 0;

@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using HarmonyLib;
 using Il2CppScheduleOne;
+using Il2CppScheduleOne.DevUtilities;
 using Il2CppScheduleOne.Equipping;
 using Il2CppScheduleOne.Growing;
 using Il2CppScheduleOne.ItemFramework;
 using Il2CppScheduleOne.Product;
 using Il2CppScheduleOne.Product.Packaging;
-using Object = UnityEngine.Object;
 
 namespace PocketPlug.Features;
 
@@ -25,6 +25,8 @@ internal static class StackLimits
         public int Original;
         public int Applied;
         public string TypeName;
+        /// <summary>Worked out once (up to ten interop casts), so a settings change only recomputes limits.</summary>
+        public ItemGroup? Group;
     }
 
     private static readonly Dictionary<string, Record> Records = new();
@@ -32,9 +34,9 @@ internal static class StackLimits
 
     internal static void ApplyAll()
     {
-        var registry = Object.FindObjectOfType<Registry>();
-        if (registry == null)
+        if (!PersistentSingleton<Registry>.InstanceExists)
             return;
+        var registry = PersistentSingleton<Registry>.Instance;
 
         var items = registry.GetAllItems();
         for (int i = 0; i < items.Count; i++)
@@ -67,7 +69,7 @@ internal static class StackLimits
             Records[id] = record;
         }
 
-        var group = Classify(def);
+        var group = record.Group ??= Classify(def);
         int target = Config.StackLimits.On && group != ItemGroup.None ? Compute(group, record.Original) : record.Original;
         record.Applied = target;
 
@@ -132,6 +134,8 @@ internal static class StackLimits
         var ammo = gun?.Magazine;
         if (ammo == null || string.IsNullOrEmpty(ammo.ID) || !AmmoIds.Add(ammo.ID))
             return null;
+        if (Records.TryGetValue(ammo.ID, out var record))
+            record.Group = ItemGroup.None;
         return ammo;
     }
 
