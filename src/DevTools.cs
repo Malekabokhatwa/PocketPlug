@@ -161,6 +161,17 @@ internal static class DevTools
                 foreach (var m in NetworkSingleton<Il2CppScheduleOne.Product.ProductManager>.Instance.ValidMixIngredients)
                     Core.Log.Msg($"steps mixer: {m.ID} '{m.Name}' effect={m.Properties[0].Name}");
                 break;
+            case "switch":
+                // The same move the arrows make, without the mixing screen open.
+                Core.Log.Msg($"steps switch: '{Features.MixSteps.Switch(mk2, int.Parse(a[1]) - 1)}'");
+                break;
+            case "closeui":
+                Singleton<Il2CppScheduleOne.UI.Stations.MixingStationInterface>.Instance.Close();
+                break;
+            case "candestroy":
+                bool can = mk2.CanBeDestroyed(out string why);
+                Core.Log.Msg($"steps candestroy: {can} reason='{why}' hidden={Features.MixSteps.HasHidden(mk2)}");
+                break;
             case "clear":
                 // Empties every step and slot of the Mk2 (test items only) and forgets its queue.
                 var q = Features.MixSteps.QueueOf(mk2, false);

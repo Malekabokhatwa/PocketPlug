@@ -4,6 +4,15 @@ Versions follow `MAJOR.MINOR.PATCH`: bug fixes bump PATCH, new features bump MIN
 To release: bump `<Version>` in `src/PocketPlug.csproj` and the version in `src/Core.cs`'s `MelonInfo`, add an entry
 here, commit, tag `vX.Y.Z`, and attach `PocketPlug.dll` to a GitHub release.
 
+## 3.1.0 (2026-10-12)
+**New: Mixing steps (Mk2 mixing stations)**
+- Small grey arrows inside the Mixer slot, under the filter icon, queue up to 20 ingredients. ▲ / → / ↑ moves to the next step, ▼ / ← / ↓ back. "Step n of m" shows under Mixer.
+- Begin mixes every step in order (step 1 first, whatever step is showing) into the final product. Verified against the game's own one-by-one mixing: same effects, same product.
+- The mixing screen previews the final product, the Mk2 screen shows it while mixing, and the line under Begin gives the total time (all the single mixes added up; Half Mixing Time still halves it).
+- Each step uses the smallest amount across the product and all steps; leftovers stay in their steps. A new final product is named once, with no in-between products.
+- Queued ingredients are kept in PocketPlug's own file, written only when the game saves, so reloading without saving can't duplicate or lose them. A station with queued ingredients can't be picked up.
+- Switch it off in Settings ("Mixing steps"); any ingredients already queued stay reachable.
+
 ## 3.0.0 (2026-10-11)
 **New: PocketPlug Backroom, the mod menu**
 - **Hold B** to open it over the running game (time keeps going; you stand still while it's open). The key and the hold time can be changed. Hold B again, Esc or × closes it.
