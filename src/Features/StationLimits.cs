@@ -141,37 +141,28 @@ internal static class DryingRackAwakePatch
 }
 
 /// <summary>
-/// Half Mixing Time: mixes run their clock at double speed, so 20 items on a Mk2 take 30 minutes instead of 60.
-/// The game's total and saved progress stay in its own minutes (toggling or removing the mod never strands a mix);
-/// only the countdowns are shown in real minutes. GetMixTimeForCurrentOperation can't be patched instead: the
-/// game's native code inlines it.
+/// The mixing clock: Half Mixing Time runs it twice as fast, and a chain of N mixing steps runs it N times slower,
+/// so it lasts as long as the N mixes. The game's total and saved progress stay in its own minutes (toggling or
+/// removing the mod never strands a mix); only the countdowns are shown in real minutes.
+/// GetMixTimeForCurrentOperation can't be patched instead: the game's native code inlines it.
 /// </summary>
-internal static class HalfMixTime
-{
-    public static bool Active(MixingStation station) => Config.HalfMixTime.On && station.CurrentMixOperation != null;
-
-    /// <summary>Real minutes left, rounded up.</summary>
-    public static int Remaining(MixingStation station) =>
-        (Math.Max(station.GetMixTimeForCurrentOperation() - station.CurrentMixTime, 0) + 1) / 2;
-}
-
 [HarmonyPatch(typeof(MixingStation), nameof(MixingStation.OnTimePass))]
 internal static class MixingStationTimePassPatch
 {
     private static void Prefix(MixingStation __instance, ref int minutes)
     {
-        if (HalfMixTime.Active(__instance))
-            minutes *= 2;
+        if (MixSteps.Scaled(__instance))
+            minutes = MixSteps.Scale(__instance, minutes);
     }
 
     private static void Postfix(MixingStation __instance)
     {
-        if (HalfMixTime.Active(__instance) && __instance.Clock != null)
-            __instance.Clock.DisplayMinutes(HalfMixTime.Remaining(__instance));
+        if (MixSteps.Scaled(__instance) && __instance.Clock != null)
+            __instance.Clock.DisplayMinutes(MixSteps.Remaining(__instance));
     }
 }
 
-/// <summary>The Mk2 screen writes its own "mins remaining" after the base tick and when a mix starts.</summary>
+/// <summary>The Mk2 screen writes its own "mins remaining" and output icon; show real minutes and the final product.</summary>
 [HarmonyPatch(typeof(MixingStationMk2))]
 internal static class MixingStationMk2ScreenPatch
 {
@@ -181,11 +172,15 @@ internal static class MixingStationMk2ScreenPatch
 
     [HarmonyPostfix]
     [HarmonyPatch(nameof(MixingStationMk2.MixingStart))]
-    private static void AfterStart(MixingStationMk2 __instance) => Relabel(__instance);
+    private static void AfterStart(MixingStationMk2 __instance)
+    {
+        Relabel(__instance);
+        MixStepsUi.RefreshScreen(__instance);
+    }
 
     private static void Relabel(MixingStationMk2 station)
     {
-        if (HalfMixTime.Active(station) && station.ProgressLabel != null)
-            station.ProgressLabel.text = HalfMixTime.Remaining(station) + " mins remaining";
+        if (MixSteps.Scaled(station) && station.ProgressLabel != null)
+            station.ProgressLabel.text = MixSteps.Remaining(station) + " mins remaining";
     }
 }

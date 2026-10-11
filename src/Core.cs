@@ -39,6 +39,8 @@ public sealed class Core : MelonMod
         Safe(Payroll.Reset);
         Safe(Daily.Reset);
         Safe(StackLimits.ApplyAll);
+        Safe(MixSteps.Reset);
+        Safe(MixStepsUi.Reset);
         Safe(Backroom.Backroom.Reset);
 
         // One-time costs (first IL2CPP casts, opening files) happen here, behind the loading screen.
@@ -67,6 +69,8 @@ public sealed class Core : MelonMod
         Safe(DealReminders.Update);
         Safe(DealerTransfers.Update);
         Safe(Daily.Update);
+        Safe(MixSteps.Update);
+        Safe(MixStepsUi.Update);
         Safe(Backroom.Backroom.Update);
     }
 

@@ -61,7 +61,7 @@ print("icons:", sorted(p.name for p in OUT.glob("*.png")))
 # Glyphs: white Lucide icons at 2x their usual 24 px display size.
 BACKROOM_GLYPHS = [
     "house", "package", "banknote", "user", "sun", "map-pin", "users", "building-2", "trophy", "settings-2", "plug",
-    "search", "chevron-right", "chevron-left", "star", "check", "x", "plus", "minus", "car", "clock", "cloud-rain",
+    "search", "chevron-right", "chevron-left", "chevron-up", "chevron-down", "star", "check", "x", "plus", "minus", "car", "clock", "cloud-rain",
     "shield", "heart", "zap", "terminal", "trash-2", "save", "eye", "laptop", "history", "landmark", "wallet",
     "sparkles", "gauge", "footprints", "moon", "flag", "lock", "skull", "refresh-cw",
 ]
