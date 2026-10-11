@@ -155,7 +155,7 @@ internal sealed class ItemsPage : Page
             var bg = K.Box(def.ID, _scroll.Content, Color.white, Theme.Radius);
             tile.Rect = bg.rectTransform;
             var captured = tile;
-            K.Clickable(bg, () => Select(_visible.IndexOf(captured), true), Theme.Panel, Theme.Raised, Theme.RaisedHover);
+            K.Clickable(bg, () => TileClicked(captured), Theme.Panel, Theme.Raised, Theme.RaisedHover);
 
             var icon = K.Rect("Icon", bg.rectTransform).gameObject.AddComponent<Image>();
             icon.sprite = def.Icon;
@@ -176,6 +176,25 @@ internal sealed class ItemsPage : Page
             K.BottomStrip(tile.Name.rectTransform, 2 * Theme.Line(Theme.Caption + 1), 4, 8, 8);
             _tiles.Add(tile);
         }
+    }
+
+    private Tile _lastClicked;
+    private float _lastClickAt = -10f;
+
+    /// <summary>One click selects an item; a double-click gives it (with the chosen quality, packaging and amount).</summary>
+    private void TileClicked(Tile tile)
+    {
+        float now = Time.unscaledTime;
+        bool twice = tile == _lastClicked && now - _lastClickAt <= 0.4f;
+        Select(_visible.IndexOf(tile), true);
+        if (twice)
+        {
+            _lastClicked = null;
+            Give();
+            return;
+        }
+        _lastClicked = tile;
+        _lastClickAt = now;
     }
 
     private static int Order(EItemCategory c) => c switch

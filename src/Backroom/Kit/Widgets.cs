@@ -9,14 +9,18 @@ namespace PocketPlug.Backroom.Kit;
 internal static class Widgets
 {
     /// <summary>A rounded search box with a magnifier glyph. Built inactive and wired up before it's enabled.</summary>
-    public static TMP_InputField SearchField(Transform parent, string placeholder)
+    public static TMP_InputField SearchField(Transform parent, string placeholder) => TextField(parent, placeholder, "search");
+
+    /// <summary>A rounded single-line text box with a leading glyph. Registered with Backroom so typing in it
+    /// never reaches the game (GameInput.IsTyping) and the menu key types instead of closing.</summary>
+    public static TMP_InputField TextField(Transform parent, string placeholder, string icon)
     {
         var box = K.Box("Search", parent, Color.white, Theme.Radius);
         box.gameObject.SetActive(false);
         var rect = box.rectTransform;
 
-        var icon = K.Glyph("Icon", rect, "search", 20, Theme.Text2);
-        K.At(icon.rectTransform, 0, 0.5f, 20, 20, 14, 0);
+        var glyph = K.Glyph("Icon", rect, icon, 20, Theme.Text2);
+        K.At(glyph.rectTransform, 0, 0.5f, 20, 20, 14, 0);
 
         var viewport = K.Rect("Viewport", rect);
         K.Fill(viewport, 44, 0, 14, 0);
@@ -53,6 +57,7 @@ internal static class Widgets
         field.colors = colors;
 
         box.gameObject.SetActive(true);
+        Backroom.RegisterField(field);
         return field;
     }
 

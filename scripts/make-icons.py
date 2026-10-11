@@ -96,3 +96,18 @@ d = ImageDraw.Draw(big)
 d.rounded_rectangle([0, 0, 255, 255], radius=40, fill=(255, 255, 255, 255))
 d.rounded_rectangle([8, 8, 247, 247], radius=32, fill=(0, 0, 0, 0))
 big.resize((64, 64), Image.LANCZOS).save(OUT / "br_frame.png")
+
+# Backroom laptop lock screen: graphite with a soft vignette and the PocketPlug plug glyph in a thin ring.
+W, H = 512, 320
+screen = Image.new("RGBA", (W, H), (15, 16, 18, 255))
+vig = Image.new("L", (W, H), 0)
+ImageDraw.Draw(vig).ellipse([-W * 0.2, -H * 0.4, W * 1.2, H * 1.4], fill=60)
+vig = vig.filter(ImageFilter.GaussianBlur(60))
+screen = Image.composite(Image.new("RGBA", (W, H), (40, 43, 48, 255)), screen, vig)
+ring = Image.new("RGBA", (440, 440), (0, 0, 0, 0))
+ImageDraw.Draw(ring).ellipse([0, 0, 439, 439], outline=(242, 243, 245, 255), width=14)
+ring = ring.resize((110, 110), Image.LANCZOS)
+screen.alpha_composite(ring, ((W - 110) // 2, (H - 110) // 2))
+plug = glyph("plug", 56, "#F2F3F5")
+screen.alpha_composite(plug, ((W - 56) // 2, (H - 56) // 2))
+screen.save(OUT / "br_lockscreen.png")

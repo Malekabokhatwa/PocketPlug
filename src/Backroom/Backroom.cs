@@ -27,12 +27,8 @@ internal static class Backroom
 
     public static readonly List<Page> Pages = new()
     {
-        new Placeholder("home", "Home", "house"), new ItemsPage(),
-        new Placeholder("money", "Money", "banknote"),
-        new Placeholder("player", "Player", "user"), new Placeholder("world", "World", "sun"),
-        new Placeholder("travel", "Travel", "map-pin"), new Placeholder("people", "People", "users"),
-        new Placeholder("property", "Property", "building-2"), new Placeholder("progress", "Progress", "trophy"),
-        new Placeholder("system", "System", "terminal"), new Placeholder("pocketplug", "PocketPlug", "plug"),
+        new HomePage(), new ItemsPage(), new MoneyPage(), new PlayerPage(), new WorldPage(), new TravelPage(),
+        new PeoplePage(), new PropertyPage(), new ProgressPage(), new SystemPage(), new PocketPlugPage(),
     };
 
     private static Shell _shell;
@@ -84,6 +80,10 @@ internal static class Backroom
         if (_setTyping)
             GameInput.IsTyping = false;
         _setTyping = false;
+        Recents.Clear();   // the actions reference objects of the old scene
+        Fields.Clear();
+        Cheats.Reset();
+        Desk.BackroomDesk.Reset();
         foreach (var page in Pages)
         {
             page.Built = false;
@@ -108,6 +108,8 @@ internal static class Backroom
             return;
         }
 
+        Cheats.Update();
+        Desk.BackroomDesk.Update();
         HandleKey();
         if (_open)
         {
@@ -129,7 +131,7 @@ internal static class Backroom
         if (!down)
         {
             // While open, a quick tap of the key is just typing (B is a letter): it starts a search.
-            if (_open && !_latched && _hold > 0f && _hold < HoldSeconds && !_shell.Search.isFocused)
+            if (_open && !_latched && _hold > 0f && _hold < HoldSeconds && !AnyFieldFocused())
                 TypeIntoSearch(Key().ToString().ToLowerInvariant());
             _latched = false;
             _hold = 0f;
@@ -139,8 +141,8 @@ internal static class Backroom
         if (_latched)
             return;
 
-        // While open, the key only closes when the search box isn't being typed in.
-        if (_open && _shell.Search.isFocused)
+        // While open, the key only closes when no text box is being typed in.
+        if (_open && AnyFieldFocused())
         {
             _hold = 0f;
             return;
@@ -255,13 +257,28 @@ internal static class Backroom
         {
             _page = _shell.Current;
             Pages[_shell.Current].OnHide();
-            _shell.Search.DeactivateInputField();
+            foreach (var field in Fields)
+            {
+                if (field != null)
+                    field.DeactivateInputField();
+            }
         }
         if (_setTyping)
         {
             GameInput.IsTyping = false;
             _setTyping = false;
         }
+    }
+
+    /// <summary>Recently run actions, newest first (shown on Home).</summary>
+    public static readonly List<(string title, Action run)> Recents = new();
+
+    public static void Recent(string title, Action run)
+    {
+        Recents.RemoveAll(r => r.title == title);
+        Recents.Insert(0, (title, run));
+        if (Recents.Count > 8)
+            Recents.RemoveAt(Recents.Count - 1);
     }
 
     /// <summary>The search box text, trimmed and lowercased.</summary>
@@ -284,6 +301,8 @@ internal static class Backroom
                 search.DeactivateInputField();
             return;
         }
+        if (AnyFieldFocused())
+            return;   // another box (the console line) handles its own keys
 
         var page = Pages[_shell.Current];
         if (Repeat(kb.upArrowKey, 0)) Navigate(page, Nav.Up);
@@ -368,18 +387,41 @@ internal static class Backroom
 
     public static int IndexOf(string id) => Pages.FindIndex(p => p.Id == id);
 
-    public static void Toast(string text, bool ok = true) => _shell?.Toast(text, ok);
+    public static void Toast(string text, bool ok = true)
+    {
+        if (Util.Perf.Enabled)
+            Core.Log.Msg($"toast: {(ok ? "ok" : "FAIL")} {text}");
+        _shell?.Toast(text, ok);
+    }
 
     /// <summary>
     /// The game ignores its own keys while GameInput.IsTyping is set; keep it set exactly while the search box
     /// has focus. Esc while typing first leaves the box (the game's Esc handling is off while typing).
     /// </summary>
+    private static readonly List<Il2CppTMPro.TMP_InputField> Fields = new();
+
+    public static void RegisterField(Il2CppTMPro.TMP_InputField field) => Fields.Add(field);
+
+    public static bool AnyFieldFocused()
+    {
+        for (int i = 0; i < Fields.Count; i++)
+        {
+            if (Fields[i] != null && Fields[i].isFocused)
+                return true;
+        }
+        return false;
+    }
+
     private static void UpdateTyping()
     {
-        bool focused = _shell.Search.isFocused;
+        bool focused = AnyFieldFocused();
         if (focused && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            _shell.Search.DeactivateInputField();
+            foreach (var field in Fields)
+            {
+                if (field != null && field.isFocused)
+                    field.DeactivateInputField();
+            }
             focused = false;
         }
         if (focused != _setTyping)

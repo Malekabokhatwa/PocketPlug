@@ -41,6 +41,7 @@ internal sealed class Shell
         public RectTransform Rect;
         public Image Icon;
         public TextMeshProUGUI Label;
+        public Button Button;
     }
 
     public Shell(List<Page> pages) => _pages = pages;
@@ -145,12 +146,12 @@ internal sealed class Shell
             var page = _pages[i];
             var bg = K.Box(page.Id, r, Color.white, Theme.Radius);
             K.TopStrip(bg.rectTransform, 48, 12 + i * 52, 12, 12);
-            K.Clickable(bg, () => Backroom.Show(index), new Color(1, 1, 1, 0), Theme.Raised, Theme.RaisedHover);
+            var button = K.Clickable(bg, () => Backroom.Show(index), new Color(1, 1, 1, 0), Theme.Raised, Theme.RaisedHover);
             var icon = K.Glyph("Icon", bg.rectTransform, page.Icon, 22, Theme.Text2);
             K.At(icon.rectTransform, 0, 0.5f, 22, 22, 16, 0);
             var label = K.Label("Label", bg.rectTransform, page.Title, Theme.Body - 2, Theme.Text, Theme.Medium);
             K.Fill(label.rectTransform, 52, 0, 8, 0);
-            _rail.Add(new RailItem { Rect = bg.rectTransform, Icon = icon, Label = label });
+            _rail.Add(new RailItem { Rect = bg.rectTransform, Icon = icon, Label = label, Button = button });
         }
         _railSelect.SetAsFirstSibling();
         // The rail's own background must stay behind the selection.
@@ -168,7 +169,7 @@ internal sealed class Shell
         K.Fill(hints, 0, 0, 520, 0);
         float x = 24;
         x = Widgets.KeyHint(hints, x, "↑↓", "Navigate");
-        x = Widgets.KeyHint(hints, x, "Enter", "Select");
+        x = Widgets.KeyHint(hints, x, "Enter", "Run");
         x = Widgets.KeyHint(hints, x, "Backspace", "Back");
         x = Widgets.KeyHint(hints, x, "Type", "Search");
         Widgets.KeyHint(hints, x, "Esc", "Close");
@@ -234,6 +235,10 @@ internal sealed class Shell
             _rail[i].Label.color = on ? Theme.OnSelect : Theme.Text;
             _rail[i].Label.font = on ? Theme.SemiBold : Theme.Medium;
             _rail[i].Icon.color = on ? Theme.OnSelect : Theme.Text2;
+            if (on)
+                K.OnSelection(_rail[i].Button);
+            else
+                K.OffSelection(_rail[i].Button);
         }
         float y = -(12 + index * 52);
         if (changed)

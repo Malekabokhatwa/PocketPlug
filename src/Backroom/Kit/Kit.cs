@@ -151,6 +151,17 @@ internal static class K
         button.colors = colors;
     }
 
+    /// <summary>
+    /// Colours for a clickable that sits on the white selection: its own hover/press fills would cover the
+    /// selection (dark text on a dark box), so hover stays clear and press only darkens faintly.
+    /// </summary>
+    public static void OnSelection(Button button) =>
+        SetColors(button, new Color(1, 1, 1, 0), new Color(1, 1, 1, 0), new Color(0, 0, 0, 0.06f));
+
+    /// <summary>Colours for an ordinary (unselected) row or rail item.</summary>
+    public static void OffSelection(Button button) =>
+        SetColors(button, new Color(1, 1, 1, 0), Theme.Raised, Theme.RaisedHover);
+
     private static float _lastCommit = -10f;
 
     /// <summary>
@@ -164,6 +175,32 @@ internal static class K
             return false;
         _lastCommit = now;
         return true;
+    }
+
+    /// <summary>"GranddaddyPurple" / "Street_Rat" → "Granddaddy Purple" / "Street Rat".</summary>
+    public static string Pretty(string name)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < name.Length; i++)
+        {
+            char c = name[i];
+            if (c == '_')
+            {
+                sb.Append(' ');
+                continue;
+            }
+            if (char.IsUpper(c) && i > 0 && name[i - 1] != '_' && !char.IsUpper(name[i - 1]))
+                sb.Append(' ');
+            sb.Append(c);
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>The game's HHMM time as "3:40 PM".</summary>
+    public static string Clock(int hhmm)
+    {
+        int h = hhmm / 100, m = hhmm % 100;
+        return $"{(h % 12 == 0 ? 12 : h % 12)}:{m:00} {(h >= 12 ? "PM" : "AM")}";
     }
 
     /// <summary>Shortens an amount for display: 1,250 / 12.5K / 3.2M.</summary>

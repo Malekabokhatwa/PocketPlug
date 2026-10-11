@@ -123,6 +123,36 @@ internal static class DevTools
         }
     }
 
+    private static void DeskPlace()
+    {
+        var cam = PlayerSingleton<Il2CppScheduleOne.PlayerScripts.PlayerCamera>.Instance.transform;
+        var target = cam.position + Vector3.ProjectOnPlane(cam.forward, Vector3.up).normalized * 1.8f;
+        Il2CppScheduleOne.Tiles.Grid bestGrid = null;
+        Il2CppScheduleOne.Tiles.Tile bestTile = null;
+        float best = 12f;
+        foreach (var prop in Il2CppScheduleOne.Property.Property.OwnedProperties)
+            foreach (var grid in prop.Grids)
+                foreach (var tile in grid.Tiles)
+                {
+                    float d = Vector3.Distance(tile.transform.position, target);
+                    // Only empty floor: nothing in the 1 x 1 m table footprint above the tile.
+                    if (d < best && !Physics.CheckBox(tile.transform.position + new Vector3(0.25f, 0.6f, 0.25f), new Vector3(0.6f, 0.45f, 0.6f), Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
+                    {
+                        best = d;
+                        bestGrid = grid;
+                        bestTile = tile;
+                    }
+                }
+        if (bestTile == null)
+        {
+            Core.Log.Msg("deskplace: no owned grid tile within 4 m in front of you");
+            return;
+        }
+        var instance = Il2CppScheduleOne.Registry.GetItem("woodsquaretable").GetDefaultInstance(1);
+        var item = NetworkSingleton<Il2CppScheduleOne.Building.BuildManager>.Instance.CreateGridItem(instance, bestGrid, new Vector2(bestTile.x, bestTile.y), 0, "", null);
+        Core.Log.Msg($"deskplace: table at tile {bestTile.x},{bestTile.y} ({best:F1} m off) → {Backroom.Desk.BackroomDesk.DevInstall(item)}");
+    }
+
     /// <summary>Backroom groundwork: fonts, table footprints and the laptop mesh, from the running game.</summary>
     private static void Probe()
     {
@@ -367,6 +397,21 @@ internal static class DevTools
                     Backroom.Backroom.Close();
                 else if (b[0] == "page" && b.Length > 1)
                     Backroom.Backroom.Show(Backroom.Backroom.IndexOf(b[1]));
+                else if ((b[0] == "run" || b[0] == "adjust" || b[0] == "back") && Backroom.Backroom.Shell != null)
+                {
+                    // backroom run <row title> | adjust <+1|-1> <row title> | back   (on the current page)
+                    if (Backroom.Backroom.Pages[Backroom.Backroom.Shell.Current] is not Backroom.Kit.ListPage list)
+                        Core.Log.Msg("backroom: not a list page");
+                    else if (b[0] == "back")
+                        Core.Log.Msg("backroom back: " + list.DevBack());
+                    else if (b[0] == "adjust")
+                    {
+                        string[] adj = b[1].Split(' ', 2);
+                        Core.Log.Msg("backroom adjust: " + list.DevRun(adj[1], int.Parse(adj[0])));
+                    }
+                    else
+                        Core.Log.Msg("backroom run: " + list.DevRun(b[1]));
+                }
                 else if (b[0] == "item" && b.Length > 1)
                 {
                     // backroom item <id> [qty] [quality|-] [packaging|-] [give]
@@ -389,6 +434,31 @@ internal static class DevTools
                     var p = it.TryCast<Il2CppScheduleOne.Product.ProductItemInstance>();
                     Core.Log.Msg($"inv: {it.Definition.ID} x{it.Quantity} quality={(q != null ? q.Quality.ToString() : "-")} packaging={(p?.AppliedPackaging != null ? p.AppliedPackaging.ID : "-")}");
                 }
+                break;
+            case "deskplace":
+                // Test only (never save after this): places a real Wooden Square Table on the nearest owned grid
+                // tile in front of the camera and installs the Backroom laptop on it.
+                DeskPlace();
+                break;
+            case "deskview":
+                // Stands the player 1.6 m in front of the Backroom laptop, looking at it.
+                var lap = GameObject.Find("PocketPlug Backroom Laptop");
+                if (lap == null)
+                {
+                    Core.Log.Msg("deskview: no laptop");
+                    break;
+                }
+                var front = -lap.transform.forward;   // the screen side
+                var stand = lap.transform.position + front * 1.6f;
+                stand.y = lap.transform.parent.position.y;
+                PlayerSingleton<Il2CppScheduleOne.PlayerScripts.PlayerMovement>.Instance.Teleport(stand, Quaternion.LookRotation(-front), true);
+                if (arg == "aim")
+                    PlayerSingleton<Il2CppScheduleOne.PlayerScripts.PlayerCamera>.Instance.LookAt(lap.transform.position + Vector3.up * 0.1f, 0.2f);
+                Core.Log.Msg($"deskview: at {stand}");
+                break;
+            case "deskhover":
+                var hovered = Singleton<Il2CppScheduleOne.Interaction.InteractionManager>.Instance.HoveredInteractableObject;
+                Core.Log.Msg($"deskhover: {(hovered != null ? hovered.gameObject.name : "nothing")}");
                 break;
             case "probe":
                 Probe();
@@ -513,6 +583,15 @@ internal static class DevTools
         var text = t.GetComponent<UnityEngine.UI.Text>();
         if (text != null)
             sb.Append($" font={(text.font != null ? text.font.name : "NULL")} size={text.fontSize} text='{(text.text.Length > 24 ? text.text.Substring(0, 24) : text.text)}'");
+        var group = t.GetComponent<CanvasGroup>();
+        if (group != null)
+            sb.Append($" groupAlpha={group.alpha:F2}");
+        if (rect != null)
+        {
+            var corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            sb.Append($" screen=({corners[0].x:F0},{corners[0].y:F0})-({corners[2].x:F0},{corners[2].y:F0})");
+        }
         var tmp = t.GetComponent<Il2CppTMPro.TextMeshProUGUI>();
         if (tmp != null)
             sb.Append($" tmp font={(tmp.font != null ? tmp.font.name : "NULL")} size={tmp.fontSize} color={tmp.color} alpha={tmp.alpha} chars={tmp.textInfo?.characterCount} text='{(tmp.text.Length > 24 ? tmp.text.Substring(0, 24) : tmp.text)}'");
