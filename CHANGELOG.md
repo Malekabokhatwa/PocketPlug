@@ -4,6 +4,16 @@ Versions follow `MAJOR.MINOR.PATCH`: bug fixes bump PATCH, new features bump MIN
 To release: bump `<Version>` in `src/PocketPlug.csproj` and the version in `src/Core.cs`'s `MelonInfo`, add an entry
 here, commit, tag `vX.Y.Z`, and attach `PocketPlug.dll` to a GitHub release.
 
+## 3.0.0 (2026-10-11)
+**New: PocketPlug Backroom, the mod menu**
+- **Hold B** to open it over the running game (time keeps going; you stand still while it's open). The key and the hold time can be changed. Hold B again, Esc or × closes it.
+- **Items:** every item with the game's own icon, category chips and search; a details pane with market price and yours, effects, addictiveness, quality, packaging (the icon follows it), quantity with Stack/Fill and live room-left; Give.
+- **Money, Player, World, Travel, People, Property, Progress, System, PocketPlug** pages covering everything the game's console does: cash and bank, health, movement, wanted level, police ignore (keeps applying to new officers), XP, emotions, time, day length, weather, lightning, law intensity, grow plants, trash, gravity, teleports (places, properties, suppliers, NPCs), vehicles, NPC unlock and relationship with portraits, special customers, property ownership and hiring, regions, quests, product discovery, the tutorial, saving, HUD and debug switches.
+- **Every console command** listed with its description and example, plus a command line that shows the game's reply.
+- **Home** with quick actions and your recent actions.
+- **Backroom laptop:** install it on a Wooden Square Table you own and press E on it. Only PocketPlug's own file remembers it: the save has just the table, and a table you sell or pick up drops its laptop.
+- Desktop-style controls: click selects, double-click runs, switches flip only when clicked, destructive actions are held to confirm, type to search, arrows and Enter work everywhere.
+
 ## 2.1.1 (2026-10-10)
 **New**
 - **Half Mixing Time** (Settings, on by default): mixing stations finish in half the time, so 20 items on a Mk2 take 30 minutes instead of 60 and 10 items take 15. The Mk2 screen shows the real minutes left. Switching it off mid-mix keeps the progress.

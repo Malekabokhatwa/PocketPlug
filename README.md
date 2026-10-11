@@ -2,6 +2,18 @@
 
 A quality-of-life [MelonLoader](https://github.com/LavaGang/MelonLoader) mod for **Schedule I** that puts more of the business in your phone. It's built for the **0.4.7 beta (IL2CPP)**. Every feature can be switched on or off from a new **Settings** app on the phone.
 
+## Backroom: the mod menu
+**Hold B** (about a third of a second; a thin ring fills around the crosshair) to open **PocketPlug Backroom** over the running game. Time keeps going and your character stands still while it's open. Hold B again, press Esc or click × to close it. You can also put a **Backroom laptop** on a Wooden Square Table at one of your properties and press E on it.
+
+- **Items:** every item in the game with its own picture, filtered by category or search. Select one to see its price, effects and addictiveness, choose quality, packaging and amount, and give it.
+- **Money, Player, World, Travel, People, Property, Progress:** cash and bank, health, speed, wanted level, rank, time, weather, the law, teleports, vehicles, every NPC with their portrait, properties and staff, regions, quests and product discovery.
+- **System:** saving, HUD and debug switches, and **every command the game's console has**, listed with what it does and runnable from a command line. Destructive actions are held to confirm.
+- **PocketPlug:** all PocketPlug settings, the Backroom key and hold time, and the laptop.
+
+Controls: click to select, **double-click** (or Enter) to run, click a switch to flip it, ← → to change values, start typing to search, Backspace to go back.
+
+**The laptop and your save.** Your save only ever contains the plain table. PocketPlug remembers which table has the laptop in its own file (`UserData/PocketPlug/backroom/`) and puts the laptop back after each load, so removing PocketPlug never breaks a save.
+
 ## Features
 - **Deal compass.** A deal's marker on the compass shows the customer's photo (the one from the Contacts app) in a green ring, with their name and distance underneath at any range. The distance uses the game's own meters/feet setting.
 - **Bank app.** Deposit and withdraw from your phone instead of walking to an ATM. It also shows your recent transactions, kept per save.
