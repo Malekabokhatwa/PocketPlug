@@ -74,6 +74,8 @@ internal static class Config
         "Bigger mixing station batches and drying racks (set below).");
     public static readonly Toggle HalfMixTime = new("HalfMixTime", "Half Mixing Time",
         "Mixing stations finish in half the time.");
+    public static readonly Toggle MixSteps = new("MixSteps", "Mixing steps",
+        "Mk2 mixing stations take up to 20 ingredients in a row (arrows in the Mixer slot).");
     public static readonly Toggle EmployeeAlerts = new("EmployeeAlerts", "Employee alerts",
         "Notifies you when an employee is out of supplies or stuck.");
     public static readonly Toggle Payroll = new("Payroll", "Payroll app",
@@ -90,7 +92,7 @@ internal static class Config
     {
         Backroom,
         CompassDeals, SkateStamina, BankApp, NoDepositLimit, DealerTransfers, ReadyAlerts, DealExpiry, StackLimits,
-        StationLimits, HalfMixTime, EmployeeAlerts, Payroll, DealerSweep, DailyReport
+        StationLimits, HalfMixTime, MixSteps, EmployeeAlerts, Payroll, DealerSweep, DailyReport
     };
 
     public static readonly StackSetting Mk1MixLimit =

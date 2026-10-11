@@ -123,6 +123,72 @@ internal static class DevTools
         }
     }
 
+    private static void StepsCommand(string arg)
+    {
+        string[] a = arg.Split(' ');
+        Il2CppScheduleOne.ObjectScripts.MixingStation mk2 = null;
+        foreach (var prop in Il2CppScheduleOne.Property.Property.OwnedProperties)
+            foreach (var it in prop.BuildableItems)
+                mk2 ??= it?.TryCast<Il2CppScheduleOne.ObjectScripts.MixingStationMk2>();
+        switch (a[0])
+        {
+            case "put":
+                // Test only: items from nothing; clear them with "steps clear" and don't save.
+                var slot = a[1] == "product" ? mk2.ProductSlot : mk2.MixerSlot;
+                slot.ClearStoredInstance(false);
+                if (a.Length > 3 && int.Parse(a[3]) > 0)
+                    slot.SetStoredItem(Il2CppScheduleOne.Registry.GetItem(a[2]).GetDefaultInstance(int.Parse(a[3])), false);
+                break;
+            case "next": Features.MixStepsUi.DevStep(1); break;
+            case "back": Features.MixStepsUi.DevStep(-1); break;
+            case "begin": Features.MixStepsUi.DevBegin(); break;
+            case "confirm":
+                // Presses the game's "New Mix Discovered" Confirm with the given name.
+                var screen = Singleton<Il2CppScheduleOne.UI.NewMixScreen>.Instance;
+                screen.nameInputField.text = string.Join(" ", a, 1, a.Length - 1);
+                screen.ConfirmButtonClicked();
+                break;
+            case "output":
+                var o = mk2.OutputSlot.ItemInstance;
+                var pd = o?.Definition?.TryCast<Il2CppScheduleOne.Product.ProductDefinition>();
+                string effects = "";
+                if (pd != null)
+                    foreach (var e in pd.Properties)
+                        effects += e.Name + ", ";
+                Core.Log.Msg($"steps output: {o?.ID} '{o?.Name}' x{mk2.OutputSlot.Quantity} quality={o?.TryCast<Il2CppScheduleOne.ItemFramework.QualityItemInstance>()?.Quality} effects=[{effects}]");
+                break;
+            case "mixers":
+                foreach (var m in NetworkSingleton<Il2CppScheduleOne.Product.ProductManager>.Instance.ValidMixIngredients)
+                    Core.Log.Msg($"steps mixer: {m.ID} '{m.Name}' effect={m.Properties[0].Name}");
+                break;
+            case "switch":
+                // The same move the arrows make, without the mixing screen open.
+                Core.Log.Msg($"steps switch: '{Features.MixSteps.Switch(mk2, int.Parse(a[1]) - 1)}'");
+                break;
+            case "closeui":
+                Singleton<Il2CppScheduleOne.UI.Stations.MixingStationInterface>.Instance.Close();
+                break;
+            case "candestroy":
+                bool can = mk2.CanBeDestroyed(out string why);
+                Core.Log.Msg($"steps candestroy: {can} reason='{why}' hidden={Features.MixSteps.HasHidden(mk2)}");
+                break;
+            case "clear":
+                // Empties every step and slot of the Mk2 (test items only) and forgets its queue.
+                var q = Features.MixSteps.QueueOf(mk2, false);
+                if (q != null)
+                {
+                    q.Cur = 0;
+                    for (int i = 0; i < q.Steps.Count; i++)
+                        q.Steps[i] = new Features.MixSteps.Step();
+                }
+                mk2.ProductSlot.ClearStoredInstance(false);
+                mk2.MixerSlot.ClearStoredInstance(false);
+                mk2.OutputSlot.ClearStoredInstance(false);
+                break;
+        }
+        Core.Log.Msg("steps: " + Features.MixStepsUi.DevState());
+    }
+
     private static void DeskPlace()
     {
         var cam = PlayerSingleton<Il2CppScheduleOne.PlayerScripts.PlayerCamera>.Instance.transform;
@@ -464,6 +530,23 @@ internal static class DevTools
                 var useLap = GameObject.Find("PocketPlug Backroom Laptop");
                 useLap?.GetComponent<Il2CppScheduleOne.Interaction.InteractableObject>()?.onInteractStart.Invoke();
                 Core.Log.Msg($"deskuse: backroom open={Backroom.Backroom.IsOpen}");
+                break;
+            case "openmixer":
+                // Opens the first Mk2 mixer's screen the way pressing E on it does.
+                foreach (var prop in Il2CppScheduleOne.Property.Property.OwnedProperties)
+                    foreach (var it in prop.BuildableItems)
+                    {
+                        var mk2 = it?.TryCast<Il2CppScheduleOne.ObjectScripts.MixingStationMk2>();
+                        if (mk2 == null)
+                            continue;
+                        Core.Log.Msg($"openmixer: {prop.PropertyName} requiresInsertion={mk2.RequiresIngredientInsertion} guid={mk2.GUID}");
+                        mk2.Interacted();
+                        return;
+                    }
+                break;
+            case "steps":
+                // steps put <product|mixer> <id> <qty> | next | back | begin | state | mixers | clear
+                StepsCommand(arg);
                 break;
             case "deskhover":
                 var hovered = Singleton<Il2CppScheduleOne.Interaction.InteractionManager>.Instance.HoveredInteractableObject;
