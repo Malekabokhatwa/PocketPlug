@@ -453,12 +453,42 @@ internal static class DevTools
                 stand.y = lap.transform.parent.position.y;
                 PlayerSingleton<Il2CppScheduleOne.PlayerScripts.PlayerMovement>.Instance.Teleport(stand, Quaternion.LookRotation(-front), true);
                 if (arg == "aim")
-                    PlayerSingleton<Il2CppScheduleOne.PlayerScripts.PlayerCamera>.Instance.LookAt(lap.transform.position + Vector3.up * 0.1f, 0.2f);
+                    PlayerSingleton<Il2CppScheduleOne.PlayerScripts.PlayerCamera>.Instance.LookAt(Backroom.Desk.Visuals.WorldBounds(lap).center, 0.2f);
+                foreach (var col in lap.GetComponentsInChildren<Collider>())
+                    Core.Log.Msg($"deskview collider: {col.name} enabled={col.enabled} bounds={col.bounds.center.ToString("F2")} size={col.bounds.size.ToString("F2")} layer={col.gameObject.layer}");
+                Core.Log.Msg($"deskview laptop renderer bounds: {Backroom.Desk.Visuals.WorldBounds(lap).center.ToString("F2")} size {Backroom.Desk.Visuals.WorldBounds(lap).size.ToString("F2")}");
                 Core.Log.Msg($"deskview: at {stand}");
+                break;
+            case "deskuse":
+                // Fires the laptop's interaction the way pressing E does.
+                var useLap = GameObject.Find("PocketPlug Backroom Laptop");
+                useLap?.GetComponent<Il2CppScheduleOne.Interaction.InteractableObject>()?.onInteractStart.Invoke();
+                Core.Log.Msg($"deskuse: backroom open={Backroom.Backroom.IsOpen}");
                 break;
             case "deskhover":
                 var hovered = Singleton<Il2CppScheduleOne.Interaction.InteractionManager>.Instance.HoveredInteractableObject;
                 Core.Log.Msg($"deskhover: {(hovered != null ? hovered.gameObject.name : "nothing")}");
+                var camT = PlayerSingleton<Il2CppScheduleOne.PlayerScripts.PlayerCamera>.Instance.transform;
+                int searchMask = Singleton<Il2CppScheduleOne.Interaction.InteractionManager>.Instance.Interaction_SearchMask.value;
+                var lapObj = GameObject.Find("PocketPlug Backroom Laptop");
+                var dir = lapObj != null ? (Backroom.Desk.Visuals.WorldBounds(lapObj).center - camT.position).normalized : camT.forward;
+                Il2CppScheduleOne.Interaction.InteractableObject winner = null;
+                float winnerD = 0;
+                foreach (var h in Physics.SphereCastAll(camT.position, 0.05f, dir, 4f, searchMask, QueryTriggerInteraction.Collide))
+                {
+                    var cand = h.collider.GetComponentInParent<Il2CppScheduleOne.Interaction.InteractableObject>();
+                    if (cand != null && (winner == null || cand.Priority > winner.Priority || (cand.Priority == winner.Priority && h.distance < winnerD)))
+                    {
+                        winner = cand;
+                        winnerD = h.distance;
+                    }
+                }
+                Core.Log.Msg($"deskhover: looking at the laptop, the game's ranking picks {(winner != null ? winner.gameObject.name : "nothing")}");
+                foreach (var h in Physics.SphereCastAll(camT.position, 0.05f, dir, 4f, searchMask, QueryTriggerInteraction.Collide))
+                {
+                    var io = h.collider.GetComponentInParent<Il2CppScheduleOne.Interaction.InteractableObject>();
+                    Core.Log.Msg($"deskhover hit: {h.collider.name} layer={h.collider.gameObject.layer} trigger={h.collider.isTrigger} d={h.distance:F2} → {(io != null ? $"{io.gameObject.name} prio={io.Priority} enabled={io.enabled}" : "none")}");
+                }
                 break;
             case "probe":
                 Probe();

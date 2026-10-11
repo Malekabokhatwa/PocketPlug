@@ -244,6 +244,8 @@ internal static class BackroomDesk
         interactable.SetMessage("Open Backroom");
         interactable.SetInteractionType(InteractableObject.EInteractionType.Key_Press);
         interactable.MaxInteractionRange = 2.5f;
+        // The table's own "View table" collider is hit first; the game ranks by Priority before distance.
+        interactable.Priority = 100;
         interactable.onInteractStart.AddListener((Action)OpenFromLaptop);
         return true;
     }
